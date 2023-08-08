@@ -38,12 +38,12 @@ namespace SMOBA
 		}
 
 		void Resize(i32 s) {
-			s_assert(s > DataSize && s < size);
+			s_assert(s > DataSize && s < size, "not right size");
 			DataSize = s;
 		}
 
 		void Remove(i32 i) {
-			s_assert(i >= 0 && i < DataSize);
+			s_assert(i >= 0 && i < DataSize, "not right size");
 			if (i != (DataSize - 1)) {
 				Data[i] = Data[DataSize - 1];
 			}
@@ -51,7 +51,7 @@ namespace SMOBA
 		}
 
 		void Remove_Ordered(i32 i) {
-			s_assert(i >= 0 && i < DataSize);
+			s_assert(i >= 0 && i < DataSize, "not right size");
 			if (i != (DataSize - 1)) {
 				memmove((Data + i), (Data + i + 1), (DataSize - (i - 1))*sizeof(T));
 			}
@@ -102,7 +102,7 @@ namespace SMOBA
 		}
 
 		const T& operator[](i32 i) const {
-			s_assert(i >= 0 && i < Size);
+			s_assert(i >= 0 && i < Size, "not right size");
 			return *(Data + i);
 		}
 
