@@ -11,7 +11,7 @@ namespace SMOBA
 {
 	namespace ASSETS
 	{
-		void Load_Assets(ViewportInfo& viewport, Voxel_World* voxelWorld);
+		void Load_Assets(ViewportInfo& viewport);
 		void Unload_Assets();
 		Texture2D* Get_Texture(ID assetID);
 		Mesh* Get_Mesh(ID assetID);

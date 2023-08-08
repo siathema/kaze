@@ -181,6 +181,25 @@ namespace SMOBA
 		free(iqm_vertex_array);
 #endif
 	}
+	void simple_quad(r32 size_step)
+	{
+		Vertex v[] = {
+			{ 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
+			{ size_step,  0.0f, 0.0f, 1.0f, 1.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+			{ size_step,  0.0f,  size_step, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+			{ size_step,  0.0f,  size_step, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
+			{ 0.0f,  0.0f,  size_step, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
+			{ 0.0f,  0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f }
+		};
+
+		Array<Vertex> verts;
+		for (i32 i = 0; i < 6; i++) verts.Add(v[i]);
+
+		Array<u32> indices;
+		for (i32 i = 0; i < verts.Size; i++) indices.Add(i);
+		ASSETS::Meshes.Add(Gen_Mesh(verts, indices));
+
+	}
 
 	Mesh* ASSETS::Get_Mesh(ID assetID)
 	{
@@ -193,18 +212,18 @@ namespace SMOBA
 	}
 
 	//TODO(matthias): OMFG change this!
-	void ASSETS::Load_Assets(ViewportInfo& viewport, Voxel_World* voxelWorld)
+	void ASSETS::Load_Assets(ViewportInfo& viewport)
     {
 		{
 			Load_Texture("assets/img/test.png");
 			Load_Texture("assets/fonts/DebugFont.png");
 			Load_Texture("assets/img/tile.png");
             Load_Texture("assets/img/texture.png");
+			Load_Texture("assets/img/Light-Green-Grass-Texture-for-Download.png");
+			Load_Texture("assets/img/Sasha_Current_Armor.png");
+			Load_Texture("assets/img/Frog_Bot_Profile.png");
 		}
-		ASSETS::Meshes.Add();
-		ASSETS::Meshes.Add();
-
-		Voxel_World_Gen_Chunk_Meshes(voxelWorld);
+		simple_quad(1.0f);
 
     }
 

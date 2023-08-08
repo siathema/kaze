@@ -20,6 +20,7 @@
 #include "renderer.hpp"
 #include "camera.hpp"
 #include "assets.hpp"
+#include "gameo.hpp"
 
 namespace SMOBA
 {
@@ -27,36 +28,11 @@ namespace SMOBA
 	Queue_Array<RenderCommand> * Rq2;
 	Input* Ip2;
 
-    void Update_Loop(Sync* GameSync)
-    {
-		GameState game = {};
-        game.GameSync = GameSync;
-
-        b8 DebugGame = true;
-
-        if(DebugGame)
-        {
-
-            while (GameSync->Running.load())
-            {
-                std::lock_guard<std::mutex> lock(GameSync->Mutex);
-                if(GameSync->UpdateLoop)
-                {
-                    GameSync->Cams[1].Update(GameSync->Ip);
-					Update_Voxel_World(GameSync->VoxelWorld, GameSync->Cams[1].Pos);
-                    Draw_Voxel_World(GameSync->Rq, GameSync->VoxelWorld);
-
-                    GameSync->UpdateLoop = false;
-                }
-            }
-        }
-    }
-
 	i32 proc()
 	{
 		ViewportInfo viewPortInfo = {};
-		viewPortInfo.ScreenHeight = 720;
-		viewPortInfo.ScreenWidth = 1280;
+		viewPortInfo.ScreenHeight = 600;
+		viewPortInfo.ScreenWidth = 800;
 		viewPortInfo.Vsync = true;
 
 		if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -143,10 +119,9 @@ namespace SMOBA
 		*GlobalSync->Ip = {};
 		*GlobalSync->Viewport = viewPortInfo;
 		GlobalSync->Running.store(true);
-		GlobalSync->VoxelWorld = Generate_Voxel_World();
 		GlobalSync->UpdateLoop = false;
 
-		ASSETS::Load_Assets(viewPortInfo, GlobalSync->VoxelWorld);
+		ASSETS::Load_Assets(viewPortInfo);
 
 		//NOTE(matthias): Render init code
 		Renderer renderer(&viewPortInfo);
@@ -162,10 +137,10 @@ namespace SMOBA
 						0.01f,
 						100.0f);
 		cameras[1].Init(0.0f,
-						90.f,
+						10.f,
 						0.0f,
 						0.0f,
-						toRadians(45.f),
+						toRadians(90.f),
 						viewPortInfo.ScreenWidth,
 						viewPortInfo.ScreenHeight,
 						0.01f,
@@ -183,7 +158,8 @@ namespace SMOBA
 		const u32 targetTime = 1000 / 60;
 		u32 elapsedTime;
 
-		std::thread updateLoop(Update_Loop, GlobalSync);
+		Game game = {};
+		std::thread updateLoop(&update_loop, GlobalSync);
 
 		while (GlobalSync->Running.load())
 		{
@@ -205,6 +181,7 @@ namespace SMOBA
 			GlobalSync->Rq = Rq2;
 			Rq2 = tempQueue;
 			GlobalSync->UpdateLoop = true;
+			GlobalSync->delta = (r32)elapsedTime / 1000.0f;
 
 			Camera* tempCams = GlobalSync->Cams;
 			GlobalSync->Cams = cameras;
@@ -307,7 +284,6 @@ namespace SMOBA
 			GlobalSync->Ip = Ip2;
 			Ip2 = tempIP;
 
-			Voxel_World_Gen_Chunk_Meshes(GlobalSync->VoxelWorld);
 			//NOTE(matthias): Timing stuff
 			u32 endTime = SDL_GetTicks();
 			elapsedTime = endTime - startTime;

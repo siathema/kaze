@@ -151,7 +151,7 @@ namespace SMOBA
 		glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.0f, 0.4f, 0.8f, 1.0f);
+		glClearColor(0.2f, 0.1f, 0.256f, 1.0f);
 
 		u32 commandCount = renderQueue->Size;
 
@@ -204,7 +204,7 @@ namespace SMOBA
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 //glEnable(GL_MULTISAMPLE);
 				glEnable(GL_DEPTH_TEST);
-				glEnable(GL_CULL_FACE);
+				//glEnable(GL_CULL_FACE);
 				Draw_Mesh(*ASSETS::Get_Mesh(rc.Mesh),
 						 ASSETS::Get_Texture(rc.Texture),
 						 camera[1],
@@ -214,7 +214,7 @@ namespace SMOBA
 						 rc.Color,
 						 rc.ShaderType);
 				glDisable(GL_DEPTH_TEST);
-				glDisable(GL_CULL_FACE);
+				//glDisable(GL_CULL_FACE);
                 //glDisable(GL_MULTISAMPLE);
 				glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffer);
 				break;
@@ -380,6 +380,8 @@ namespace SMOBA
 											   "light.position");
 		u32 viewPosLoc = glGetUniformLocation(ShaderIDs[shader],
 											  "viewPos");
+		u32 colorLoc = glGetUniformLocation(ShaderIDs[shader], "objectColor");
+		
 		//u32 lightPosLoc = glGetUniformLocation(ShaderIDs[shader], "lightPos");
 		//u32 lightColorLoc = glGetUniformLocation(ShaderIDs[shader], "lightColor");
 		//u32 objectColorLoc = glGetUniformLocation(ShaderIDs[shader], "objectColor");
@@ -397,6 +399,8 @@ namespace SMOBA
 						   1,
 						   GL_FALSE,
 						   (GLfloat*)&mvp._m);
+
+		glUniform4f(colorLoc, color.x, color.y, color.z, color.w);
 
         glActiveTexture(GL_TEXTURE0);
         texture->Bind();

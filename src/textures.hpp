@@ -11,6 +11,9 @@ namespace SMOBA
 			const ID DebugBitMapFont = 1;
 			const ID DebugTile = 2;
             const ID TileMap = 3;
+			const ID Grass = 4;
+			const ID Sasha = 5;
+			const ID FrogBot = 6;
 			//const ID ModelTest = 5;
 			//const ID TurretDiffuse = 6;
 			//const ID TurretSpecular = 7;

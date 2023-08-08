@@ -63,7 +63,7 @@ namespace SMOBA
     struct Voxel_Block
     {
         BlockType BlockType;
-        //u16 Voxels[BLOCK_VOLUME];
+        u16 Voxels[BLOCK_VOLUME];
     };
 
     struct Voxel_Chunk
@@ -88,7 +88,7 @@ namespace SMOBA
         u64 Seed;
         //Voxel_Chunk* ActiveChunks[CHUNK_MAX_ACTIVE];
         i32 ChunkSize;
-        Voxel_Chunk Chunks[CHUNK_MAX];
+        Voxel_Chunk* Chunks[CHUNK_MAX];
         volatile HashNode* ChunkHashMap[HASH_TABLE_SIZE];
     };
 

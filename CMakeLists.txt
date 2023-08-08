@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-project(SideMOBA)
+project(bfa)
 
 if(UNIX AND NOT APPLE)
         set(LINUX TRUE)
@@ -27,21 +27,22 @@ set(SOURCES
 	src/sMath.cpp
     src/voxel.cpp
     src/ui.cpp
-    src/shared.cpp)
+    src/shared.cpp
+    src/game.cpp)
 
 add_executable(client ${SOURCES})
 
 if(WIN32)
 	target_include_directories( client PRIVATE
-			    				libs/glew-2.1.0/include
-			   					libs/SDL2-2.0.8/include
+			    				libs/glew/include
+			   					libs/SDL2/include
 								 )
 
 	target_link_libraries( client
 	opengl32.lib
-	${CMAKE_CURRENT_SOURCE_DIR}/libs/glew-2.1.0/lib/Release/x64/glew32.lib
-	${CMAKE_CURRENT_SOURCE_DIR}/libs/SDL2-2.0.8/lib/x64/SDL2.lib
-	${CMAKE_CURRENT_SOURCE_DIR}/libs/SDL2-2.0.8/lib/x64/SDL2main.lib)
+	${CMAKE_CURRENT_SOURCE_DIR}/libs/glew/lib/Release/x64/glew32.lib
+	${CMAKE_CURRENT_SOURCE_DIR}/libs/SDL2/lib/x64/SDL2.lib
+	${CMAKE_CURRENT_SOURCE_DIR}/libs/SDL2/lib/x64/SDL2main.lib)
 elseif(LINUX)
     target_link_libraries( client
                            ${OPENGL_LIBRARIES}

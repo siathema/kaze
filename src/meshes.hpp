@@ -8,6 +8,7 @@ namespace SMOBA
     {
         namespace MESHES
         {
+            const ID SIMPLEQUAUD = 0;
         }
     }
 }

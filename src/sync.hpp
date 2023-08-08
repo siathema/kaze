@@ -21,7 +21,7 @@ namespace SMOBA
         ViewportInfo* Viewport;
         UI_Context* UiContext;
         Camera* Cams;
-        Voxel_World* VoxelWorld;
+        r32 delta;
 
         inline Sync(): Mutex(), Running(), UpdateLoop(true)
         {

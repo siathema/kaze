@@ -179,6 +179,7 @@ namespace SMOBA
     {
         i32* pTemp = (i32*)malloc(sizeof(i32) * size);
         memcpy(pTemp, data, sizeof(i32) * size);
+        s_assert(pTemp, "Allocation Failed");
 
         for(size_t i=0; i<size; i++)
         {
