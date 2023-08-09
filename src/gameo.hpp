@@ -12,6 +12,6 @@ namespace SMOBA
 		Game();
 		~Game();
 		void tick(r32 delta);
-		void render(Queue_Array<RenderCommand>* rq);
+		void render(std::queue<RenderCommand>* rq);
 	};
 }

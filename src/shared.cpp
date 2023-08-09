@@ -14,13 +14,13 @@ namespace SMOBA
 
     u32 ROL_32(u32 n, u32 r)
     {
-        u32 result = (n << r) | (n >> 32-r);
+        u32 result = (n << r) | (n >> (32-r));
         return result;
     }
 
     u32 ROR_32(u32 n, u32 r)
     {
-        u32 result = (n >> r) | (n << 32-r);
+        u32 result = (n >> r) | (n << (32-r));
         return result;
     }
 

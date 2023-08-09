@@ -2,6 +2,7 @@
 #include "sMath.hpp"
 #include "sAssert.hpp"
 #include "assets.hpp"
+#include <queue>
 #include <stdio.h>
 #include <stdlib.h>
 #include "GL/glew.h"
@@ -142,7 +143,7 @@ namespace SMOBA
 		Init_Render_Data();
 	}
 
-	void Renderer::Render(Queue_Array<RenderCommand> *renderQueue,
+	void Renderer::Render(std::queue<RenderCommand> *renderQueue,
 						  Camera *camera)
 	{
 
@@ -153,11 +154,12 @@ namespace SMOBA
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.2f, 0.1f, 0.256f, 1.0f);
 
-		u32 commandCount = renderQueue->Size;
+		u32 commandCount = renderQueue->size();
 
 		for (i32 i = 0; i < commandCount; i++)
 		{
-			RenderCommand rc = renderQueue->Pop();
+			RenderCommand rc = renderQueue->front();
+            renderQueue->pop();
 
 			switch (rc.RenderType)
 			{

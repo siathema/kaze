@@ -79,7 +79,7 @@ namespace SMOBA
         BodyRectangle.Scale = vec3(1.0f, 1.0f, 0.0f);
         BodyRectangle.Rot = 0.0f;
 
-        GlobalSync->Rq->Push(BodyRectangle);
+        GlobalSync->Rq->push(BodyRectangle);
 
         return result;
     }
@@ -149,7 +149,7 @@ namespace SMOBA
         Text.Color = UIColorTextDark;
         Text.String = label;
 
-        GlobalSync->Rq->Push(Text);
+        GlobalSync->Rq->push(Text);
         return result;
     }
 
@@ -178,7 +178,7 @@ namespace SMOBA
         Text.Color = UIColorTextDark;
         Text.String = label;
 
-        GlobalSync->Rq->Push(Text);
+        GlobalSync->Rq->push(Text);
         return result;
     }
 

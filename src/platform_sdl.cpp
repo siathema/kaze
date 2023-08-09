@@ -1,3 +1,4 @@
+#include <queue>
 #include <stdio.h>
 #include <iostream>
 #include <thread>
@@ -25,7 +26,7 @@
 namespace SMOBA
 {
 	Sync* GlobalSync;
-	Queue_Array<RenderCommand> * Rq2;
+    std::queue<RenderCommand> * Rq2;
 	Input* Ip2;
 
 	i32 proc()
@@ -108,13 +109,14 @@ namespace SMOBA
 		SDL_Event event;
 
 		//NOTE(matthias):Threading debug stuff
-		Rq2 = new Queue_Array<RenderCommand>;
+		Rq2 = new std::queue<RenderCommand>;
 		Ip2 = new Input();
 		GlobalSync = new Sync();
-		GlobalSync->Rq = new Queue_Array<RenderCommand>;
+		GlobalSync->Rq = new std::queue<RenderCommand>;
 		GlobalSync->Ip = new Input();
 		GlobalSync->UiContext = new UI_Context();
 		GlobalSync->Viewport = new ViewportInfo();
+        GlobalSync->delta = 0.0f;
 		*GlobalSync->UiContext = {};
 		*GlobalSync->Ip = {};
 		*GlobalSync->Viewport = viewPortInfo;
@@ -156,7 +158,7 @@ namespace SMOBA
 		char debugMessage[256];
 		sprintf(debugMessage, format, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0, 0, 0.0f, 0.0f, 0.0f);
 		const u32 targetTime = 1000 / 60;
-		u32 elapsedTime;
+		u32 elapsedTime = 0;
 
 		Game game = {};
 		std::thread updateLoop(&update_loop, GlobalSync);
@@ -177,7 +179,7 @@ namespace SMOBA
 
 			std::lock_guard<std::mutex> guard(GlobalSync->Mutex);
 			// TODO(matthias): consolidate these swaps
-			Queue_Array<RenderCommand> * tempQueue = GlobalSync->Rq;
+            std::queue<RenderCommand> * tempQueue = GlobalSync->Rq;
 			GlobalSync->Rq = Rq2;
 			Rq2 = tempQueue;
 			GlobalSync->UpdateLoop = true;

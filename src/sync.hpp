@@ -16,7 +16,7 @@ namespace SMOBA
         std::mutex Mutex;
         std::atomic_bool Running;
         bool UpdateLoop;
-        Queue_Array<RenderCommand> * Rq;
+        std::queue<RenderCommand> * Rq;
         Input* Ip;
         ViewportInfo* Viewport;
         UI_Context* UiContext;

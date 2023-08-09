@@ -1,5 +1,7 @@
 #pragma once
 
+#include <queue>
+
 
 #include "game.hpp"
 #include "sMath.hpp"
@@ -77,7 +79,7 @@ namespace SMOBA
 
 		Renderer(ViewportInfo* viewportInfo);
 
-		void Render(Queue_Array<RenderCommand> *renderQueue, Camera *camera);
+		void Render(std::queue<RenderCommand> *renderQueue, Camera *camera);
 		void Draw_Text_Rect(const char* str,
 							Camera &camera,
 							r32 x,

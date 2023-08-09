@@ -4,6 +4,8 @@
 #include "assets.hpp"
 #include "renderer.hpp"
 #include "ui.hpp"
+#include <queue>
+#include <vector>
 
 
 namespace SMOBA
@@ -31,18 +33,24 @@ namespace SMOBA
 		}
 
 		void tick(float delta) {
+            //printf("pos: %f, %f\n", pos.x, pos.z);
 			if (debug_waypoint != nullptr) {
 				dir = debug_waypoint->pos - pos;
-				dir.normalize();
+                if(dir.length() < 0.05f) {
+                    pos = debug_waypoint->pos;
+                    return;
+                } else {
+                    dir.normalize();
+                }
 			}
 			pos += dir * speed * delta;
 		}
 
-		void render(Queue_Array<RenderCommand>* rq) {
+		void render(std::queue<RenderCommand>* rq) {
 			render_info.Pos = pos;
 			render_info.Scale = vec3(1.0f, 1.0f, 1.5f);
 
-			rq->Push(render_info);
+			rq->push(render_info);
 		}
 	};
 
@@ -89,10 +97,13 @@ namespace SMOBA
 			entities[i].init();
 			r32 xPos = static_cast <r32> (rand()) / (static_cast <r32> (RAND_MAX / 100.f));
 			r32 zPos = static_cast <r32> (rand()) / (static_cast <r32> (RAND_MAX / 100.f));
+            //printf("xPos: %f, zPos %f\n", xPos, zPos);
 			entities[i].pos.x = xPos;
 			entities[i].pos.z = zPos;
 			entities[i].debug_waypoint = &wayPoint;
 			entities[i].speed = 5.0f;
+            printf("pos: %f, %f\n", entities[i].pos.x, entities[i].pos.z);
+
 		}
 
 		field.render_info.RenderType = MESHRENDER;
@@ -120,11 +131,14 @@ namespace SMOBA
 					GameSync->Cams[1].Update(GameSync->Ip);
 					for (u32 i = 0; i < 100; i++)
 					{
+                        printf("entity: %d pos: %f, %f\n", i, entities[i].pos.x, entities[i].pos.z);
 						entities[i].tick(GameSync->delta);
+                        printf("entity: %d pos: %f, %f\n", i, entities[i].pos.x, entities[i].pos.z);
+                        printf("delta: %f\n", GameSync->delta);
 					}
 
 					// Rendering
-					GameSync->Rq->Push(field.render_info);
+					GameSync->Rq->push(field.render_info);
 					sasha.render(GameSync->Rq);
 					wayPoint.render(GameSync->Rq);
 					for (u32 i = 0; i < 100; i++)
@@ -152,7 +166,7 @@ namespace SMOBA
     {
     }
 
-    void Game::render(Queue_Array<RenderCommand>* rq)
+    void Game::render(std::queue<RenderCommand>* rq)
     {
         
     }
