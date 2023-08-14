@@ -1,32 +1,30 @@
 #include "assets.hpp"
-//#include "../assets/meshes.hpp"
+// #include "../assets/meshes.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-#include "renderer.hpp"
 #include "IQM.hpp"
-#include "voxel.hpp"
 #include "array.hpp"
+#include "renderer.hpp"
+#include "stb_image.h"
+#include "voxel.hpp"
 
 #include <string.h>
 
-namespace SMOBA
-{
-	Array<Texture2D> ASSETS::Textures;
-	Array<Mesh> ASSETS::Meshes;
-	//static Array<ID> ASSETS::Meshes::ChunkMeshes;
+namespace SMOBA {
+Array<Texture2D> ASSETS::Textures;
+Array<Mesh> ASSETS::Meshes;
+// static Array<ID> ASSETS::Meshes::ChunkMeshes;
 
-	void Load_Texture(const char *path)
-	{
-		i32 w, h, channels;
-		u8* pixels = stbi_load(path, &w, &h, &channels, 4);
-		if (pixels == 0) printf("%s\n", stbi_failure_reason());
-		Texture2D tex(pixels, w, h);
-		ASSETS::Textures.Add(tex);
-	}
+void Load_Texture(const char *path) {
+    i32 w, h, channels;
+    u8 *pixels = stbi_load(path, &w, &h, &channels, 4);
+    if (pixels == 0)
+        printf("%s\n", stbi_failure_reason());
+    Texture2D tex(pixels, w, h);
+    ASSETS::Textures.Add(tex);
+}
 
-	void loadFromIQM(const char *path)
-	{
+void loadFromIQM(const char *path) {
 #if 0
 		FILE* inStream = fopen(path, "rb");
 		s_assert(inStream != 0, "Could not open file\n");
@@ -180,54 +178,45 @@ namespace SMOBA
 		free(iqm_mesh);
 		free(iqm_vertex_array);
 #endif
-	}
-	void simple_quad(r32 size_step)
-	{
-		Vertex v[] = {
-			{ 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
-			{ size_step,  0.0f, 0.0f, 1.0f, 1.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-			{ size_step,  0.0f,  size_step, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-			{ size_step,  0.0f,  size_step, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f },
-			{ 0.0f,  0.0f,  size_step, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f },
-			{ 0.0f,  0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f }
-		};
-
-		Array<Vertex> verts;
-		for (i32 i = 0; i < 6; i++) verts.Add(v[i]);
-
-		Array<u32> indices;
-		for (i32 i = 0; i < verts.Size; i++) indices.Add(i);
-		ASSETS::Meshes.Add(Gen_Mesh(verts, indices));
-
-	}
-
-	Mesh* ASSETS::Get_Mesh(ID assetID)
-	{
-		return &(Meshes[assetID]);
-	}
-
-	Texture2D* ASSETS::Get_Texture(ID assetID)
-	{
-		return &(Textures[assetID]);
-	}
-
-	//TODO(matthias): OMFG change this!
-	void ASSETS::Load_Assets(ViewportInfo& viewport)
-    {
-		{
-			Load_Texture("assets/img/test.png");
-			Load_Texture("assets/fonts/DebugFont.png");
-			Load_Texture("assets/img/tile.png");
-            Load_Texture("assets/img/texture.png");
-			Load_Texture("assets/img/Light-Green-Grass-Texture-for-Download.png");
-			Load_Texture("assets/img/Sasha_Current_Armor.png");
-			Load_Texture("assets/img/Frog_Bot_Profile.png");
-		}
-		simple_quad(1.0f);
-
-    }
-
-	void ASSETS::Unload_Assets() {
-
-	}
 }
+void simple_quad(r32 size_step) {
+    Vertex v[] = {
+        {0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+        {size_step, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+        {size_step, 0.0f, size_step, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+         0.0f},
+        {size_step, 0.0f, size_step, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+         0.0f},
+        {0.0f, 0.0f, size_step, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f}};
+
+    Array<Vertex> verts;
+    for (i32 i = 0; i < 6; i++)
+        verts.Add(v[i]);
+
+    Array<u32> indices;
+    for (i32 i = 0; i < verts.Size; i++)
+        indices.Add(i);
+    ASSETS::Meshes.Add(Gen_Mesh(verts, indices));
+}
+
+Mesh *ASSETS::Get_Mesh(ID assetID) { return &(Meshes[assetID]); }
+
+Texture2D *ASSETS::Get_Texture(ID assetID) { return &(Textures[assetID]); }
+
+// TODO(matthias): OMFG change this!
+void ASSETS::Load_Assets(ViewportInfo &viewport) {
+    {
+        Load_Texture("assets/img/test.png");
+        Load_Texture("assets/fonts/DebugFont.png");
+        Load_Texture("assets/img/tile.png");
+        Load_Texture("assets/img/texture.png");
+        Load_Texture("assets/img/Light-Green-Grass-Texture-for-Download.png");
+        Load_Texture("assets/img/Sasha_Current_Armor.png");
+        Load_Texture("assets/img/Frog_Bot_Profile.png");
+    }
+    simple_quad(1.0f);
+}
+
+void ASSETS::Unload_Assets() {}
+} // namespace SMOBA

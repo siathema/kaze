@@ -1,26 +1,23 @@
 #pragma once
 
+#include "array.hpp"
 #include "game.hpp"
 #include "sMath.hpp"
-#include "array.hpp"
 
-namespace SMOBA
-{
+namespace SMOBA {
 
-    struct Vertex
-    {
-      r32 x,y,z,u,v,nx,ny,nz,tx,ty,tz;
-    };
+struct Vertex {
+    r32 x, y, z, u, v, nx, ny, nz, tx, ty, tz;
+};
 
-    struct Mesh
-    {
-        u32 VAO;
-        u32 VBO;
-        u32 EBO;
-        u32 Vertices;
-        u32 Indices;
-     };
+struct Mesh {
+    u32 VAO;
+    u32 VBO;
+    u32 EBO;
+    u32 Vertices;
+    u32 Indices;
+};
 
-    Mesh Gen_Mesh(Array<Vertex>& verts, Array<u32>& indices);
-    void Destroy_Mesh(Mesh* mesh);
-}
+Mesh Gen_Mesh(Array<Vertex> &verts, Array<u32> &indices);
+void Destroy_Mesh(Mesh *mesh);
+} // namespace SMOBA
