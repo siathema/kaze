@@ -28,8 +28,8 @@ Input *Ip2;
 
 i32 proc() {
     ViewportInfo viewPortInfo = {};
-    viewPortInfo.ScreenHeight = 600;
-    viewPortInfo.ScreenWidth = 800;
+    viewPortInfo.ScreenHeight = 720;
+    viewPortInfo.ScreenWidth = 1280;
     viewPortInfo.Vsync = true;
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
