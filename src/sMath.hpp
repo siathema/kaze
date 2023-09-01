@@ -188,6 +188,8 @@ struct rect {
     vec2 pos;
     vec2 size;
 
+    static const rect zero;
+
     inline rect() : pos(), size() {}
     inline rect(const vec2 &p, const vec2 &s) : pos(p), size(s) {}
     inline rect(const rect &r) : pos(r.pos), size(r.size) {}

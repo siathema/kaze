@@ -133,6 +133,7 @@ vec4 desaturate(const vec4 &c) {
 } // namespace sMath
 
 const vec2 vec2::zero(0, 0);
+const rect rect::zero(vec2::zero, vec2::zero);
 const vec3 vec3::zero(0, 0, 0);
 const vec4 vec4::zero(0, 0, 0, 0);
 

@@ -2,6 +2,7 @@
 #include "assets.hpp"
 #include "gameo.hpp"
 #include "renderer.hpp"
+#include "sMath.hpp"
 #include "sync.hpp"
 #include "ui.hpp"
 #include <math.h>
@@ -9,19 +10,81 @@
 #include <vector>
 
 namespace SMOBA {
+/*
+    bool point_in_polygon_convex(const std::vector<vec2> polygon, const vec2 point) {
+        for(u32 i = 0; i < polygon.size(); i++) {
+           size_t p2i = i == polygon.size() -1 ? 0 : i;
+           vec2 v1 = polygon[p2i] - polygon[i];
+           vec2 v2 = point - polygon[i];
+           r64 orient = v1.cross(v2);
+           if(orient > 0) {
+               return false;
+           }
+        }
+        return true;
+    }
+*/
+
+    struct AABBCollider {
+        rect bb;
+        ID id;
+
+        AABBCollider() : bb(rect::zero), id(0) {}
+
+        AABBCollider(const AABBCollider& r) {
+            bb = r.bb;
+            id = r.id;
+        }
+
+        AABBCollider(vec2 pos, ID id) {
+
+            this->bb = bb;
+            this->id = id;
+        }
+
+        void go_to(const vec2& new_pos) {
+            bb.pos = new_pos;
+
+        }
+
+        bool collides(const AABBCollider& o) {
+            for(u32 i = 0; i < points.size(); i++) {
+                if(true) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
+
+    struct collision_manager {
+        std::vector<AABBCollider> AABBColliders;
+        
+        AABBCollider* check_collisions(const ID col_Id) {
+            AABBCollider col = AABBColliders[col_Id];
+            for(i32 i = 0; i < AABBColliders.size(); i++) {
+               if(AABBColliders[i].id != col.id && AABBColliders[i].collides(col)) {
+                    return &AABBColliders[i];
+               }
+            }
+            return nullptr;
+        }
+    };
 
 #define PIXELS_PER_METER 100
 struct entity {
     ID id;
     vec2 pos;
     vec2 vel;
-    r32 speed;
+    r32 speed, jump_speed;
     quat rot;
     RenderCommand render_info;
     bool jump, jc;
+    AABBCollider* col;
 
     void init() {
         speed = 7 * PIXELS_PER_METER;
+        jump_speed = 50000;
         vel = vec2::zero;
         jump = jc = false;
         render_info.RenderType = TEXTURERENDER;
@@ -59,8 +122,7 @@ struct entity {
         vec2 acc = dir * speed;
         //gravity
         if(jump) {
-            acc.y = 70000;
-            printf("derp\n");
+            acc.y = jump_speed;
             jump = false;
         }
         acc.y -= 9.8 * PIXELS_PER_METER;
@@ -103,22 +165,6 @@ void update_loop(Sync *GameSync) {
     sasha.init();
     sasha.pos.x = 0.f;
     sasha.pos.y = 0.f;
-   /* 
-    entity entities[100] = {};
-    for (u32 i = 0; i < 100; i++) {
-        entities[i].init();
-        r32 xPos =
-            static_cast<r32>(rand()) / (static_cast<r32>(RAND_MAX / 100.f));
-        r32 zPos =
-            static_cast<r32>(rand()) / (static_cast<r32>(RAND_MAX / 100.f));
-        // printf("xPos: %f, zPos %f\n", xPos, zPos);
-        entities[i].pos.x = xPos;
-        entities[i].pos.z = zPos;
-        entities[i].debug_waypoint = &wayPoint;
-        entities[i].speed = 5.0f;
-        printf("pos: %f, %f\n", entities[i].pos.x, entities[i].pos.z);
-    }
-    */
 
     if (DebugGame) {
         // NOTE(matthias): Main Game loop
