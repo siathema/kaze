@@ -25,51 +25,51 @@ namespace SMOBA {
     }
 */
 
-    struct AABBCollider {
-        rect bb;
-        ID id;
+//NOTE(Aria): Were doing AABB collisions and brute forcing detections for now,
+// if needed we can change to SAT and quadtrees later.
+struct AABB_Box {
+    vec2 pos;
+    vec2 dim;
+    ID id;
+};
 
-        AABBCollider() : bb(rect::zero), id(0) {}
+#define MAX_COLLIDERS 64
+struct Colliders {
+    i32 size;
+    AABB_Box col_array[MAX_COLLIDERS];
+};
 
-        AABBCollider(const AABBCollider& r) {
-            bb = r.bb;
-            id = r.id;
+// Incase we want to just see if a point is in a box.
+bool point_in_box(const vec2& point, const AABB_Box& box) {
+    if(((point.x >= box.pos.x) && (point.x <= box.pos.x + box.dim.x)) &&
+            ((point.y >= box.pos.y) && (point.y <= box.pos.y + box.dim.y))) {
+        return true;
+    }
+    return false;
+}
+
+bool AABB_Collision(const AABB_Box& box1, const AABB_Box& box2) {
+    if(box1.pos.x < box2.pos.x + box2.dim.x &&
+        box1.pos.x + box1.dim.x > box2.pos.x &&
+        box1.pos.y < box2.pos.y + box2.dim.y &&
+        box1.pos.y + box1.dim.y > box2.pos.y) {
+        return true;
+    }
+    return false;
+}
+
+const AABB_Box* find_collision_AABB(const AABB_Box& box, Colliders& colliders) {
+    AABB_Box* result = 0;
+    for(u32 i=0; i < colliders.size; i++) {
+        if(box.id != colliders.col_array[i].id) {
+           if(AABB_Collision(box, colliders.col_array[i])) {
+                result = &colliders.col_array[i];
+                break;
+           }
         }
-
-        AABBCollider(vec2 pos, ID id) {
-
-            this->bb = bb;
-            this->id = id;
-        }
-
-        void go_to(const vec2& new_pos) {
-            bb.pos = new_pos;
-
-        }
-
-        bool collides(const AABBCollider& o) {
-            for(u32 i = 0; i < points.size(); i++) {
-                if(true) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    };
-
-    struct collision_manager {
-        std::vector<AABBCollider> AABBColliders;
-        
-        AABBCollider* check_collisions(const ID col_Id) {
-            AABBCollider col = AABBColliders[col_Id];
-            for(i32 i = 0; i < AABBColliders.size(); i++) {
-               if(AABBColliders[i].id != col.id && AABBColliders[i].collides(col)) {
-                    return &AABBColliders[i];
-               }
-            }
-            return nullptr;
-        }
-    };
+    }
+    return result;
+}
 
 #define PIXELS_PER_METER 100
 struct entity {
@@ -80,7 +80,6 @@ struct entity {
     quat rot;
     RenderCommand render_info;
     bool jump, jc;
-    AABBCollider* col;
 
     void init() {
         speed = 7 * PIXELS_PER_METER;
