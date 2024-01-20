@@ -37,6 +37,13 @@ struct AABB_Box {
 struct Colliders {
     i32 size;
     AABB_Box col_array[MAX_COLLIDERS];
+
+    void init() {
+        size = MAX_COLLIDERS;
+        for(u32 i = 0; i < MAX_COLLIDERS; i++) {
+            col_array[i].id = i;
+        }
+    }
 };
 
 // Incase we want to just see if a point is in a box.
@@ -80,12 +87,18 @@ struct entity {
     quat rot;
     RenderCommand render_info;
     bool jump, jc;
+    AABB_Box* collider;
 
-    void init() {
+    void init(AABB_Box* c) {
         speed = 7 * PIXELS_PER_METER;
         jump_speed = 50000;
         vel = vec2::zero;
         jump = jc = false;
+        collider = c;
+        collider->dim.x = 90;
+        collider->dim.y = 160;
+        collider->pos.x = pos.x;
+        collider->pos.y = pos.y;
         render_info.RenderType = TEXTURERENDER;
         render_info.ShaderType = SIMPLEBLIT;
         render_info.Mesh = 0;
@@ -97,9 +110,14 @@ struct entity {
         render_info.Rot = 0.0f;
     }
 
-    void tick(float delta, Input* ip) {
+    void tick(float delta, Input* ip, Colliders* colliders) {
         vec2 dir = vec2::zero;
-        printf("%d\n", ip->Up);
+        collider->pos = pos;
+        if(find_collision_AABB(*collider, *colliders)) {
+            printf("Collision!\n");
+        } else {
+            printf("no collision :/\n");
+        }
         if( ip->Up ) {
             if(!jc) {
                 jump = true;
@@ -154,16 +172,23 @@ struct entity {
 
 void update_loop(Sync *GameSync) {
     // NOTE(matthias): inialization of Game starts here. Stays in scope for
-    // entire game but lives on the stack.
+    // entire game lives on the stack rn.
     GameState game = {};
     game.GameSync = GameSync;
 
     b8 DebugGame = true;
+    Colliders colliders = {};
+    colliders.init();
 
     entity sasha = {};
-    sasha.init();
+    entity test_rect = {};
     sasha.pos.x = 0.f;
     sasha.pos.y = 0.f;
+    sasha.init(&colliders.col_array[0]);
+    test_rect.pos.x = 100.f;
+    test_rect.pos.y = 0.f;
+    test_rect.init(&colliders.col_array[1]);
+
 
     if (DebugGame) {
         // NOTE(matthias): Main Game loop
@@ -171,9 +196,10 @@ void update_loop(Sync *GameSync) {
             std::lock_guard<std::mutex> lock(GameSync->Mutex);
             if (GameSync->UpdateLoop) {
                 // Update
-                sasha.tick(GameSync->delta, GameSync->Ip);
+                sasha.tick(GameSync->delta, GameSync->Ip, &colliders);
                 // Rendering
                 sasha.render(GameSync->Rq);
+                test_rect.render(GameSync->Rq);
 
                 GameSync->UpdateLoop = false;
             }
