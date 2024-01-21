@@ -78,8 +78,147 @@ const AABB_Box* find_collision_AABB(const AABB_Box& box, Colliders& colliders) {
     return result;
 }
 
+struct Component {
+    ID entity;
+    u64 type;
+};
+
+struct Position {
+    Component comp;
+    vec2 pos;
+};
+
+struct Player {
+    Component comp;
+    vec2 vel;
+    r32 speed, jump_speed;
+    bool jump, jc;
+};
+
+struct Sprite {
+    Component comp;
+    RenderCommand rc;
+};
+
+struct Entity {
+    ID id;
+    const char * name;
+    u64 components;
+};
+
+#define MAX_COMPONENTS 64
+#define MAX_ENTITIES 128
+struct Components {
+   Position positions[MAX_ENTITIES]; 
+   Position players[MAX_ENTITIES]; 
+   Sprite sprites[MAX_ENTITIES]; 
+   Entity entities[MAX_ENTITIES];
+   u16 num_entities;
+};
+
+void components_create(Components* comps) {
+    for(u32 i = 0; i < MAX_ENTITIES; i++) {
+        comps->positions[i].comp.entity = i;
+        comps->positions[i].comp.type = 1;
+        comps->players[i].comp.entity = i;
+        comps->players[i].comp.type = 1 << 1;
+        comps->sprites[i].comp.entity = i;
+        comps->sprites[i].comp.type = 1 << 2;
+    }
+}
+
+void position_init(ID id, Components* comp) {}
+void player_init(ID id, Components* comp) {}
+void sprite_init(ID id, Components* comp) {}
+
+void components_init(Components* comps) {
+    u16 num_entities = comps->num_entities;
+    for(u32 i = 0; i < num_entities; i++) {
+        position_init(i, comps);
+        player_init(i, comps);
+        sprite_init(i, comps);
+    }
+}
+
+void position_tick(ID id, Components* comp) {}
+void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colliders) {
+    vec2 dir = vec2::zero;
+    collider->pos = pos;
+    if(find_collision_AABB(*collider, *colliders)) {
+        printf("Collision!\n");
+    } else {
+        printf("no collision :/\n");
+    }
+    if( ip->Up ) {
+        if(!jc) {
+            jump = true;
+            jc = true;
+        }
+    }
+    if( ip->Down) {
+        dir.y -= 1.0f;
+    }
+    if( ip->Left) {
+        dir.x -= 1.0f;
+    }
+    if( ip->Right) {
+        dir.x += 1.0f;
+    }
+    if(dir.length() > 1.0f) {
+        dir.normalize();
+    }
+    vec2 acc = dir * speed;
+    //gravity
+    if(jump) {
+        acc.y = jump_speed;
+        jump = false;
+    }
+    acc.y -= 9.8 * PIXELS_PER_METER;
+
+    //friction
+    if(acc.x == 0.0f && !jc) {
+        acc.x += -vel.x * 9.5f;
+    }
+
+
+
+    vec2 npos = (acc * 0.5 * pow(delta, 2.0f)) + vel * delta + pos;
+    if(npos.y < -200) {
+        npos.y = -201;
+        jc = false;
+    }
+    pos = npos;
+
+    vel = acc * delta + vel;
+}
+
+void sprite_tick(ID id, Components* comp) {}
+
+void components_tick(Components* comps, r32 delta, Input* ip, Colliders* colliders) {
+    u16 num_entities = comps->num_entities;
+    for(u32 i = 0; i < num_entities; i++) {
+        position_tick(i, comps);
+        player_tick(i, comps, delta, ip, colliders);
+        sprite_tick(i, comps);
+    }
+}
+
+void position_draw(ID id, Components* comp, std::queue<RenderCommand> * rq) {}
+void player_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {}
+void sprite_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {}
+
+void components_draw(Components* comps, std::queue<RenderCommand> *rq) {
+    u16 num_entities = comps->num_entities;
+    for(u32 i = 0; i < num_entities; i++) {
+        position_draw(i, comps, rq);
+        player_draw(i, comps, rq);
+        sprite_draw(i, comps, rq);
+    }
+}
+
+
 #define PIXELS_PER_METER 100
-struct entity {
+struct old_entity {
     ID id;
     vec2 pos;
     vec2 vel;
@@ -180,8 +319,13 @@ void update_loop(Sync *GameSync) {
     Colliders colliders = {};
     colliders.init();
 
-    entity sasha = {};
-    entity test_rect = {};
+    Components comps = {};
+    components_create(&comps);
+    components_init(&comps);
+    comps.num_entities = 2;
+
+    old_entity sasha = {};
+    old_entity test_rect = {};
     sasha.pos.x = 0.f;
     sasha.pos.y = 0.f;
     sasha.init(&colliders.col_array[0]);
@@ -197,9 +341,11 @@ void update_loop(Sync *GameSync) {
             if (GameSync->UpdateLoop) {
                 // Update
                 sasha.tick(GameSync->delta, GameSync->Ip, &colliders);
+                components_tick(&comps, GameSync->delta, GameSync->Ip, &colliders);
                 // Rendering
                 sasha.render(GameSync->Rq);
                 test_rect.render(GameSync->Rq);
+                components_draw(&comps, GameSync->Rq);
 
                 GameSync->UpdateLoop = false;
             }
