@@ -106,6 +106,13 @@ struct Entity {
     u64 components;
 };
 
+enum component_value {
+    POS_COM = 1 << 0,
+    PLAY_COM = 1 << 1,
+    SPRITE_COM = 1 << 2,
+    COLLIDE_COM = 1 << 3
+};
+//NOTE(Aria): Make this more generalized.
 #define MAX_COMPONENTS 64
 #define MAX_ENTITIES 128
 struct Components {
@@ -115,6 +122,29 @@ struct Components {
    Entity entities[MAX_ENTITIES];
    u16 num_entities;
 };
+
+Component* Get_Entity_Component(ID entity, component_value comp, Components* comps) {
+    Entity* e = &comps->entities[entity];
+    if(e->components &= comp) {
+        switch (comp) {
+            case POS_COM:{
+                return (Component*)&comps->positions[entity];
+                         }break;
+            case PLAY_COM:{
+                return (Component*)&comps->players[entity];
+                          }break;
+            case SPRITE_COM:{
+                return (Component*)&comps->positions[entity];
+                           }break;
+            case COLLIDE_COM:{
+                return (Component*)&comps->positions[entity];
+                             }break;
+            default:{
+
+                    }break;
+        } 
+    }
+}
 
 void components_create(Components* comps) {
     for(u32 i = 0; i < MAX_ENTITIES; i++) {
@@ -142,6 +172,7 @@ void components_init(Components* comps) {
 
 void position_tick(ID id, Components* comp) {}
 void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colliders) {
+    /*
     vec2 dir = vec2::zero;
     collider->pos = pos;
     if(find_collision_AABB(*collider, *colliders)) {
@@ -190,6 +221,7 @@ void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colli
     pos = npos;
 
     vel = acc * delta + vel;
+    */
 }
 
 void sprite_tick(ID id, Components* comp) {}
