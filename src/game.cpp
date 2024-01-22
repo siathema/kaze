@@ -88,6 +88,7 @@ struct Position {
     vec2 pos;
 };
 
+#define PIXELS_PER_METER 100
 struct Player {
     Component comp;
     vec2 vel;
@@ -134,7 +135,7 @@ struct Components {
 
 Component* Get_Entity_Component(ID entity, component_value comp, Components* comps) {
     Entity* e = &comps->entities[entity];
-    if(e->components &= comp) {
+    if(e->components & comp) {
         switch (comp) {
             case POS_COM:{
                 return (Component*)&comps->positions[entity];
@@ -170,37 +171,71 @@ void components_create(Components* comps) {
 }
 
 void position_init(ID id, Components* comps) {}
-void player_init(ID id, Components* comps) {}
+void player_init(ID id, Components* comps) {
+        Player* p = (Player*)Get_Entity_Component(id, PLAY_COM, comps);
+        Collider* collider = (Collider*)Get_Entity_Component(id, COLLIDE_COM, comps);
+        Position* pos = (Position*)Get_Entity_Component(id, POS_COM, comps);
+        Sprite* sprite = (Sprite*)Get_Entity_Component(id, SPRITE_COM, comps);
+        
+        p->speed = 7 * PIXELS_PER_METER;
+        p->jump_speed = 50000;
+        p->vel = vec2::zero;
+        p->jump = p->jc = false;
+        collider->collider->dim.x = 90;
+        collider->collider->dim.y = 160;
+        collider->collider->pos.x = pos->pos.x;
+        collider->collider->pos.y = pos->pos.y;
+        sprite->rc.RenderType = TEXTURERENDER;
+        sprite->rc.ShaderType = SIMPLEBLIT;
+        sprite->rc.Mesh = 0;
+        sprite->rc.Texture = ASSETS::TEXTURES::Sasha;
+        sprite->rc.TextureRect = iRect(0, 0, 1800, 3200);
+        sprite->rc.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        sprite->rc.Pos = vec3(pos->pos.x, pos->pos.y, 1.0f);;
+        sprite->rc.Scale = vec3(0.05f, -0.05f, 0.05f);
+        sprite->rc.Rot = 0.0f;
+}
 void sprite_init(ID id, Components* comps) {}
 void collider_init(ID id, Components* comps) {}
 
 void components_init(Components* comps) {
     u16 num_entities = comps->num_entities;
     for(u32 i = 0; i < num_entities; i++) {
-        position_init(i, comps);
-        player_init(i, comps);
-        sprite_init(i, comps);
-        collider_init(i, comps);
+        //TODO(Aria): change to pointers
+        Entity ce = comps->entities[i];
+        if(ce.components & POS_COM) { 
+            position_init(i, comps);
+        }
+        if(ce.components & PLAY_COM) { 
+            player_init(i, comps);
+        }
+        if(ce.components & SPRITE_COM) { 
+            sprite_init(i, comps);
+        }
+        if(ce.components & COLLIDE_COM) { 
+            collider_init(i, comps);
+        }
     }
 }
 
 void position_tick(ID id, Components* comp) {}
+
 void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colliders) {
     Player* p = (Player*)Get_Entity_Component(id, PLAY_COM, comp);
     Collider* c = (Collider*)Get_Entity_Component(id, COLLIDE_COM, comp);
     Position* pos = (Position*)Get_Entity_Component(id, POS_COM, comp);
     vec2 dir = vec2::zero;
     c->collider->pos = pos->pos;
-    /*
-    if(find_collision_AABB(*collider, *colliders)) {
+    
+    if(find_collision_AABB(*c->collider, *colliders)) {
         printf("Collision!\n");
     } else {
         printf("no collision :/\n");
     }
     if( ip->Up ) {
-        if(!jc) {
-            jump = true;
-            jc = true;
+        if(!p->jc) {
+            p->jump = true;
+            p->jc = true;
         }
     }
     if( ip->Down) {
@@ -215,30 +250,26 @@ void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colli
     if(dir.length() > 1.0f) {
         dir.normalize();
     }
-    vec2 acc = dir * speed;
+    vec2 acc = dir * p->speed;
     //gravity
-    if(jump) {
-        acc.y = jump_speed;
-        jump = false;
+    if(p->jump) {
+        acc.y = p->jump_speed;
+        p->jump = false;
     }
     acc.y -= 9.8 * PIXELS_PER_METER;
-
     //friction
-    if(acc.x == 0.0f && !jc) {
-        acc.x += -vel.x * 9.5f;
+    if(acc.x == 0.0f && !p->jc) {
+        acc.x += -p->vel.x * 9.5f;
     }
-
-
-
-    vec2 npos = (acc * 0.5 * pow(delta, 2.0f)) + vel * delta + pos;
+    vec2 npos = (acc * 0.5 * pow(delta, 2.0f)) + p->vel * delta + pos->pos;
     if(npos.y < -200) {
         npos.y = -201;
-        jc = false;
+        p->jc = false;
     }
-    pos = npos;
+    pos->pos = npos;
 
-    vel = acc * delta + vel;
-    */
+    p->vel = acc * delta + p->vel;
+
 }
 
 void sprite_tick(ID id, Components* comp) {}
@@ -247,30 +278,55 @@ void collider_tick(ID id, Components* comp) {}
 void components_tick(Components* comps, r32 delta, Input* ip, Colliders* colliders) {
     u16 num_entities = comps->num_entities;
     for(u32 i = 0; i < num_entities; i++) {
-        position_tick(i, comps);
-        player_tick(i, comps, delta, ip, colliders);
-        sprite_tick(i, comps);
-        collider_tick(i, comps);
+        //TODO(Aria): change to pointers
+        Entity ce = comps->entities[i];
+        if(ce.components & POS_COM) { 
+            position_tick(i, comps);
+        }
+        if(ce.components & PLAY_COM) { 
+            player_tick(i, comps, delta, ip, colliders);
+        }
+        if(ce.components & SPRITE_COM) { 
+            sprite_tick(i, comps);
+        }
+        if(ce.components & COLLIDE_COM) { 
+            collider_tick(i, comps);
+        }
     }
 }
 
 void position_draw(ID id, Components* comp, std::queue<RenderCommand> * rq) {}
 void player_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {}
-void sprite_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {}
+void sprite_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {
+    Sprite* sprite = (Sprite*)Get_Entity_Component(id, SPRITE_COM, comp);
+    Position* pos = (Position*)Get_Entity_Component(id, POS_COM, comp);
+    sprite->rc.Pos = vec3(pos->pos.x, pos->pos.y, 1.0f);
+
+    rq->push(sprite->rc);
+}
 void collider_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {}
 
 void components_draw(Components* comps, std::queue<RenderCommand> *rq) {
     u16 num_entities = comps->num_entities;
     for(u32 i = 0; i < num_entities; i++) {
-        position_draw(i, comps, rq);
-        player_draw(i, comps, rq);
-        sprite_draw(i, comps, rq);
-        collider_draw(i, comps, rq);
+        //TODO(Aria): change to pointers
+        Entity ce = comps->entities[i];
+        if(ce.components & POS_COM) { 
+            position_draw(i, comps, rq);
+        }
+        if(ce.components & PLAY_COM) { 
+            player_draw(i, comps, rq);
+        }
+        if(ce.components & SPRITE_COM) { 
+            sprite_draw(i, comps, rq);
+        }
+        if(ce.components & COLLIDE_COM) { 
+            collider_draw(i, comps, rq);
+        }
     }
 }
 
-
-#define PIXELS_PER_METER 100
+/*
 struct old_entity {
     ID id;
     vec2 pos;
@@ -361,6 +417,7 @@ struct old_entity {
         rq->push(render_info);
     }
 };
+*/
 
 void update_loop(Sync *GameSync) {
     // NOTE(matthias): inialization of Game starts here. Stays in scope for
@@ -374,9 +431,27 @@ void update_loop(Sync *GameSync) {
 
     Components comps = {};
     components_create(&comps);
-    components_init(&comps);
     comps.num_entities = 2;
-
+    Entity* sasha = &comps.entities[0];
+    Entity* test_box = &comps.entities[1];
+    sasha->id = 0;
+    sasha->name = "sasha";
+    sasha->components = POS_COM | PLAY_COM | SPRITE_COM | COLLIDE_COM;
+    Position* sasha_pos = (Position*)Get_Entity_Component(sasha->id, POS_COM, &comps);
+    sasha_pos->pos.x = 0.0f;
+    sasha_pos->pos.y = 0.0f;
+    Collider* sasha_collider = (Collider*)Get_Entity_Component(sasha->id, COLLIDE_COM, &comps);
+    sasha_collider->collider = &colliders.col_array[0];
+    test_box->id = 1;
+    test_box->name = "test_box";
+    test_box->components = POS_COM | SPRITE_COM | COLLIDE_COM;
+    Position* test_box_pos = (Position*)Get_Entity_Component(test_box->id, POS_COM, &comps);
+    test_box_pos->pos.x = 100.0f;
+    test_box_pos->pos.y = 0.0f;
+    Collider* test_box_collider = (Collider*)Get_Entity_Component(test_box->id, COLLIDE_COM, &comps);
+    test_box_collider->collider = &colliders.col_array[1];
+    components_init(&comps);
+    /*
     old_entity sasha = {};
     old_entity test_rect = {};
     sasha.pos.x = 0.f;
@@ -385,6 +460,7 @@ void update_loop(Sync *GameSync) {
     test_rect.pos.x = 100.f;
     test_rect.pos.y = 0.f;
     test_rect.init(&colliders.col_array[1]);
+    */
 
 
     if (DebugGame) {
@@ -393,11 +469,11 @@ void update_loop(Sync *GameSync) {
             std::lock_guard<std::mutex> lock(GameSync->Mutex);
             if (GameSync->UpdateLoop) {
                 // Update
-                sasha.tick(GameSync->delta, GameSync->Ip, &colliders);
+                //sasha.tick(GameSync->delta, GameSync->Ip, &colliders);
                 components_tick(&comps, GameSync->delta, GameSync->Ip, &colliders);
                 // Rendering
-                sasha.render(GameSync->Rq);
-                test_rect.render(GameSync->Rq);
+                //sasha.render(GameSync->Rq);
+                //test_rect.render(GameSync->Rq);
                 components_draw(&comps, GameSync->Rq);
 
                 GameSync->UpdateLoop = false;
