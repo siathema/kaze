@@ -100,10 +100,17 @@ struct Sprite {
     RenderCommand rc;
 };
 
+struct Collider {
+    Component comp;
+    AABB_Box* collider;
+};
+
 struct Entity {
     ID id;
     const char * name;
     u64 components;
+    bool visible;
+    bool alive;
 };
 
 enum component_value {
@@ -119,7 +126,9 @@ struct Components {
    Position positions[MAX_ENTITIES]; 
    Position players[MAX_ENTITIES]; 
    Sprite sprites[MAX_ENTITIES]; 
+   Collider colliders[MAX_ENTITIES]; 
    Entity entities[MAX_ENTITIES];
+
    u16 num_entities;
 };
 
@@ -134,32 +143,36 @@ Component* Get_Entity_Component(ID entity, component_value comp, Components* com
                 return (Component*)&comps->players[entity];
                           }break;
             case SPRITE_COM:{
-                return (Component*)&comps->positions[entity];
+                return (Component*)&comps->sprites[entity];
                            }break;
             case COLLIDE_COM:{
-                return (Component*)&comps->positions[entity];
+                return (Component*)&comps->colliders[entity];
                              }break;
             default:{
 
                     }break;
         } 
     }
+    return 0;
 }
 
 void components_create(Components* comps) {
     for(u32 i = 0; i < MAX_ENTITIES; i++) {
         comps->positions[i].comp.entity = i;
-        comps->positions[i].comp.type = 1;
+        comps->positions[i].comp.type = POS_COM;
         comps->players[i].comp.entity = i;
-        comps->players[i].comp.type = 1 << 1;
+        comps->players[i].comp.type = PLAY_COM;
         comps->sprites[i].comp.entity = i;
-        comps->sprites[i].comp.type = 1 << 2;
+        comps->sprites[i].comp.type = SPRITE_COM;
+        comps->colliders[i].comp.entity = i;
+        comps->colliders[i].comp.type = COLLIDE_COM;
     }
 }
 
-void position_init(ID id, Components* comp) {}
-void player_init(ID id, Components* comp) {}
-void sprite_init(ID id, Components* comp) {}
+void position_init(ID id, Components* comps) {}
+void player_init(ID id, Components* comps) {}
+void sprite_init(ID id, Components* comps) {}
+void collider_init(ID id, Components* comps) {}
 
 void components_init(Components* comps) {
     u16 num_entities = comps->num_entities;
@@ -167,14 +180,18 @@ void components_init(Components* comps) {
         position_init(i, comps);
         player_init(i, comps);
         sprite_init(i, comps);
+        collider_init(i, comps);
     }
 }
 
 void position_tick(ID id, Components* comp) {}
 void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colliders) {
-    /*
+    Player* p = (Player*)Get_Entity_Component(id, PLAY_COM, comp);
+    Collider* c = (Collider*)Get_Entity_Component(id, COLLIDE_COM, comp);
+    Position* pos = (Position*)Get_Entity_Component(id, POS_COM, comp);
     vec2 dir = vec2::zero;
-    collider->pos = pos;
+    c->collider->pos = pos->pos;
+    /*
     if(find_collision_AABB(*collider, *colliders)) {
         printf("Collision!\n");
     } else {
@@ -225,6 +242,7 @@ void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colli
 }
 
 void sprite_tick(ID id, Components* comp) {}
+void collider_tick(ID id, Components* comp) {}
 
 void components_tick(Components* comps, r32 delta, Input* ip, Colliders* colliders) {
     u16 num_entities = comps->num_entities;
@@ -232,12 +250,14 @@ void components_tick(Components* comps, r32 delta, Input* ip, Colliders* collide
         position_tick(i, comps);
         player_tick(i, comps, delta, ip, colliders);
         sprite_tick(i, comps);
+        collider_tick(i, comps);
     }
 }
 
 void position_draw(ID id, Components* comp, std::queue<RenderCommand> * rq) {}
 void player_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {}
 void sprite_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {}
+void collider_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {}
 
 void components_draw(Components* comps, std::queue<RenderCommand> *rq) {
     u16 num_entities = comps->num_entities;
@@ -245,6 +265,7 @@ void components_draw(Components* comps, std::queue<RenderCommand> *rq) {
         position_draw(i, comps, rq);
         player_draw(i, comps, rq);
         sprite_draw(i, comps, rq);
+        collider_draw(i, comps, rq);
     }
 }
 
