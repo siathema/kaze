@@ -420,7 +420,7 @@ struct old_entity {
 */
 
 void update_loop(Sync *GameSync) {
-    // NOTE(matthias): inialization of Game starts here. Stays in scope for
+    // NOTE(matthias): initialization of Game starts here. Stays in scope for
     // entire game lives on the stack rn.
     GameState game = {};
     game.GameSync = GameSync;
@@ -450,6 +450,18 @@ void update_loop(Sync *GameSync) {
     test_box_pos->pos.y = 0.0f;
     Collider* test_box_collider = (Collider*)Get_Entity_Component(test_box->id, COLLIDE_COM, &comps);
     test_box_collider->collider = &colliders.col_array[1];
+    test_box_collider->collider->pos = test_box_pos->pos;
+    test_box_collider->collider->dim = vec2(90.0f, 160.0f);
+    Sprite* test_box_sprite = (Sprite*)Get_Entity_Component(test_box->id, SPRITE_COM, &comps);
+    test_box_sprite->rc.RenderType = TEXTURERENDER;
+    test_box_sprite->rc.ShaderType = SIMPLEBLIT;
+    test_box_sprite->rc.Mesh = 0;
+    test_box_sprite->rc.Texture = ASSETS::TEXTURES::Sasha;
+    test_box_sprite->rc.TextureRect = iRect(0, 0, 1800, 3200);
+    test_box_sprite->rc.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    test_box_sprite->rc.Pos = vec3(test_box_pos->pos.x, test_box_pos->pos.y, 1.0f);;
+    test_box_sprite->rc.Scale = vec3(0.05f, -0.05f, 0.05f);
+    test_box_sprite->rc.Rot = 0.0f;
     components_init(&comps);
     /*
     old_entity sasha = {};
