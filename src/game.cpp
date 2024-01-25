@@ -39,7 +39,6 @@ struct Colliders {
     AABB_Box col_array[MAX_COLLIDERS];
 
     void init() {
-        size = MAX_COLLIDERS;
         for(u32 i = 0; i < MAX_COLLIDERS; i++) {
             col_array[i].id = i;
         }
@@ -225,13 +224,7 @@ void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colli
     Collider* c = (Collider*)Get_Entity_Component(id, COLLIDE_COM, comp);
     Position* pos = (Position*)Get_Entity_Component(id, POS_COM, comp);
     vec2 dir = vec2::zero;
-    c->collider->pos = pos->pos;
     
-    if(find_collision_AABB(*c->collider, *colliders)) {
-        printf("Collision!\n");
-    } else {
-        printf("no collision :/\n");
-    }
     if( ip->Up ) {
         if(!p->jc) {
             p->jump = true;
@@ -266,10 +259,40 @@ void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colli
         npos.y = -201;
         p->jc = false;
     }
+    c->collider->pos = npos;
+    const AABB_Box* other;
+    if((other = find_collision_AABB(*c->collider, *colliders))) {
+        printf("collision!\n");
+        if((acc.y <= 0.0f) && other->pos.y < ((c->collider->pos.y + c->collider->dim.y))) {
+            printf("Collision top!\n");
+            npos.y = pos->pos.y;
+            acc.y = 0.0f;
+            p->jc = false;
+        } else if((other->pos.y + other->dim.y) > (c->collider->pos.y)) {
+            printf("BONK!\n");
+            printf("Collision Bottom!\n");
+            npos.y = pos->pos.y;
+            p->vel.y = 0.0f;
+            acc.y = 0.0f;
+        } 
+        if(acc.x >= 0.0f && other->pos.x >= (c->collider->pos.x + c->collider->dim.x)) {
+            printf("Collision right!\n");
+            npos.x = pos->pos.x;    
+            p->vel.x = 0.0f;
+            acc.x = 0.0f;
+        } else if((other->pos.x + other->dim.x) <= (c->collider->pos.x)) {
+            printf("Collision left!\n");
+            npos.x = pos->pos.x;    
+            p->vel.x = 0.0f;
+            acc.x = 0.0f;
+        }
+
+        c->collider->pos = pos->pos;
+    } else {
+        //printf("no collision\n");
+    }
     pos->pos = npos;
-
     p->vel = acc * delta + p->vel;
-
 }
 
 void sprite_tick(ID id, Components* comp) {}
@@ -428,6 +451,7 @@ void update_loop(Sync *GameSync) {
     b8 DebugGame = true;
     Colliders colliders = {};
     colliders.init();
+    colliders.size = 2;
 
     Components comps = {};
     components_create(&comps);
@@ -438,23 +462,23 @@ void update_loop(Sync *GameSync) {
     sasha->name = "sasha";
     sasha->components = POS_COM | PLAY_COM | SPRITE_COM | COLLIDE_COM;
     Position* sasha_pos = (Position*)Get_Entity_Component(sasha->id, POS_COM, &comps);
-    sasha_pos->pos.x = 0.0f;
-    sasha_pos->pos.y = 0.0f;
+    sasha_pos->pos.x = -640.0f;
+    sasha_pos->pos.y = 360.0f;
     Collider* sasha_collider = (Collider*)Get_Entity_Component(sasha->id, COLLIDE_COM, &comps);
     sasha_collider->collider = &colliders.col_array[0];
     test_box->id = 1;
     test_box->name = "test_box";
     test_box->components = POS_COM | SPRITE_COM | COLLIDE_COM;
     Position* test_box_pos = (Position*)Get_Entity_Component(test_box->id, POS_COM, &comps);
-    test_box_pos->pos.x = 100.0f;
+    test_box_pos->pos.x = 200.0f;
     test_box_pos->pos.y = 0.0f;
     Collider* test_box_collider = (Collider*)Get_Entity_Component(test_box->id, COLLIDE_COM, &comps);
     test_box_collider->collider = &colliders.col_array[1];
     test_box_collider->collider->pos = test_box_pos->pos;
     test_box_collider->collider->dim = vec2(90.0f, 160.0f);
     Sprite* test_box_sprite = (Sprite*)Get_Entity_Component(test_box->id, SPRITE_COM, &comps);
-    test_box_sprite->rc.RenderType = TEXTURERENDER;
-    test_box_sprite->rc.ShaderType = SIMPLEBLIT;
+    test_box_sprite->rc.RenderType = RECTANGLERENDER;
+    test_box_sprite->rc.ShaderType =  FILLRECTANGLE;
     test_box_sprite->rc.Mesh = 0;
     test_box_sprite->rc.Texture = ASSETS::TEXTURES::Sasha;
     test_box_sprite->rc.TextureRect = iRect(0, 0, 1800, 3200);
@@ -463,17 +487,6 @@ void update_loop(Sync *GameSync) {
     test_box_sprite->rc.Scale = vec3(0.05f, -0.05f, 0.05f);
     test_box_sprite->rc.Rot = 0.0f;
     components_init(&comps);
-    /*
-    old_entity sasha = {};
-    old_entity test_rect = {};
-    sasha.pos.x = 0.f;
-    sasha.pos.y = 0.f;
-    sasha.init(&colliders.col_array[0]);
-    test_rect.pos.x = 100.f;
-    test_rect.pos.y = 0.f;
-    test_rect.init(&colliders.col_array[1]);
-    */
-
 
     if (DebugGame) {
         // NOTE(matthias): Main Game loop
@@ -481,11 +494,8 @@ void update_loop(Sync *GameSync) {
             std::lock_guard<std::mutex> lock(GameSync->Mutex);
             if (GameSync->UpdateLoop) {
                 // Update
-                //sasha.tick(GameSync->delta, GameSync->Ip, &colliders);
                 components_tick(&comps, GameSync->delta, GameSync->Ip, &colliders);
                 // Rendering
-                //sasha.render(GameSync->Rq);
-                //test_rect.render(GameSync->Rq);
                 components_draw(&comps, GameSync->Rq);
 
                 GameSync->UpdateLoop = false;
