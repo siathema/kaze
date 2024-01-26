@@ -57,8 +57,8 @@ bool point_in_box(const vec2& point, const AABB_Box& box) {
 bool AABB_Collision(const AABB_Box& box1, const AABB_Box& box2) {
     if(box1.pos.x < box2.pos.x + box2.dim.x &&
         box1.pos.x + box1.dim.x > box2.pos.x &&
-        box1.pos.y < box2.pos.y + box2.dim.y &&
-        box1.pos.y + box1.dim.y > box2.pos.y) {
+        box1.pos.y > box2.pos.y - box2.dim.y &&
+        box1.pos.y - box1.dim.y < box2.pos.y) {
         return true;
     }
     return false;
@@ -190,8 +190,9 @@ void player_init(ID id, Components* comps) {
         sprite->rc.Texture = ASSETS::TEXTURES::Sasha;
         sprite->rc.TextureRect = iRect(0, 0, 1800, 3200);
         sprite->rc.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        sprite->rc.Pos = vec3(pos->pos.x, pos->pos.y, 1.0f);;
-        sprite->rc.Scale = vec3(0.05f, -0.05f, 0.05f);
+        //TODO(Aria): fix this.
+        sprite->rc.Pos = vec3(pos->pos.x, pos->pos.y - collider->collider->dim.y, 1.0f);;
+        sprite->rc.Scale = vec3(0.05f, 0.05f, 0.05f);
         sprite->rc.Rot = 0.0f;
 }
 void sprite_init(ID id, Components* comps) {}
@@ -263,28 +264,31 @@ void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colli
     const AABB_Box* other;
     if((other = find_collision_AABB(*c->collider, *colliders))) {
         printf("collision!\n");
-        if((acc.y <= 0.0f) && other->pos.y < ((c->collider->pos.y + c->collider->dim.y))) {
-            printf("Collision top!\n");
-            npos.y = pos->pos.y;
-            acc.y = 0.0f;
-            p->jc = false;
-        } else if((other->pos.y + other->dim.y) > (c->collider->pos.y)) {
-            printf("BONK!\n");
-            printf("Collision Bottom!\n");
-            npos.y = pos->pos.y;
-            p->vel.y = 0.0f;
-            acc.y = 0.0f;
-        } 
-        if(acc.x >= 0.0f && other->pos.x >= (c->collider->pos.x + c->collider->dim.x)) {
-            printf("Collision right!\n");
-            npos.x = pos->pos.x;    
-            p->vel.x = 0.0f;
-            acc.x = 0.0f;
-        } else if((other->pos.x + other->dim.x) <= (c->collider->pos.x)) {
-            printf("Collision left!\n");
-            npos.x = pos->pos.x;    
-            p->vel.x = 0.0f;
-            acc.x = 0.0f;
+        if(other->pos.y < (c->collider->pos.y - c->collider->dim.y) /*|| (other->pos.y + other->dim.y) > (c->collider->pos.y)*/) {
+            if(p->vel.y <= 0.0f) {
+                printf("Collision top!\n");
+                npos.y = pos->pos.y;
+                acc.y = 0.0f;
+                p->jc = false;
+            } else {
+                printf("BONK!\n");
+                printf("Collision Bottom!\n");
+                npos.y = pos->pos.y;
+                p->vel.y = 0.0f;
+                acc.y = 0.0f;
+            } 
+        } else if(other->pos.x >= (c->collider->pos.x + c->collider->dim.x) ||
+                (other->pos.x + other->dim.x) <= c->collider->pos.x) {
+            if(acc.x >= 0.0f) {
+                printf("Collision right!\n");
+                npos.x = pos->pos.x;    p->vel.x = 0.0f;
+                acc.x = 0.0f;
+            } else {
+                printf("Collision left!\n");
+                npos.x = pos->pos.x;    
+                p->vel.x = 0.0f;
+                acc.x = 0.0f;
+            }
         }
 
         c->collider->pos = pos->pos;
@@ -327,7 +331,21 @@ void sprite_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {
 
     rq->push(sprite->rc);
 }
-void collider_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {}
+void collider_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {
+        
+        Collider* col = (Collider*)Get_Entity_Component(id, COLLIDE_COM, comp);
+        RenderCommand rc = {};
+        rc.RenderType = RECTANGLERENDER;
+        rc.ShaderType =  FILLRECTANGLE;
+        rc.Mesh = 0;
+        rc.Texture = 0;
+        rc.TextureRect = iRect(0, 0, col->collider->dim.x, col->collider->dim.y);
+        rc.Color = vec4(1.0f, 1.0f, 0.0f, 1.0f);
+        rc.Pos = vec3(col->collider->pos.x, col->collider->pos.y, 1.0f);;
+        rc.Scale = vec3(1.0f, 1.0f, 1.0f);
+        rc.Rot = 0.0f;
+        rq->push(rc);
+}
 
 void components_draw(Components* comps, std::queue<RenderCommand> *rq) {
     u16 num_entities = comps->num_entities;
@@ -484,7 +502,7 @@ void update_loop(Sync *GameSync) {
     test_box_sprite->rc.TextureRect = iRect(0, 0, 1800, 3200);
     test_box_sprite->rc.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
     test_box_sprite->rc.Pos = vec3(test_box_pos->pos.x, test_box_pos->pos.y, 1.0f);;
-    test_box_sprite->rc.Scale = vec3(0.05f, -0.05f, 0.05f);
+    test_box_sprite->rc.Scale = vec3(0.05f, 0.05f, 0.05f);
     test_box_sprite->rc.Rot = 0.0f;
     components_init(&comps);
 
