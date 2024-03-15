@@ -5,11 +5,14 @@
 #include "sMath.hpp"
 #include "sync.hpp"
 #include "ui.hpp"
+#include <cmath>
 #include <math.h>
 #include <queue>
 #include <vector>
 
 namespace SMOBA {
+#define MAX(a, b) (a > b) ? (a) : (b)
+#define MIN(a, b) (a < b) ? (a) : (b)
 /*
     bool point_in_polygon_convex(const std::vector<vec2> polygon, const vec2 point) {
         for(u32 i = 0; i < polygon.size(); i++) {
@@ -54,27 +57,62 @@ bool point_in_box(const vec2& point, const AABB_Box& box) {
     return false;
 }
 
-bool AABB_Collision(const AABB_Box& box1, const AABB_Box& box2) {
-    if(box1.pos.x < box2.pos.x + box2.dim.x &&
-        box1.pos.x + box1.dim.x > box2.pos.x &&
-        box1.pos.y > box2.pos.y - box2.dim.y &&
-        box1.pos.y - box1.dim.y < box2.pos.y) {
-        return true;
+r32 AABB_Swept_Collision(const AABB_Box& box1, const AABB_Box& box2, const vec2& vel, vec2& normal) {
+    vec2 InvEntry, InvExit;
+    if ( vel.x > 0.0f) {
+        InvEntry.x = box2.pos.x - (box1.pos.x + box1.dim.x);
+        InvExit.x = (box2.pos.x + box2.dim.x) - box1.pos.x;
+    } else {
+        InvEntry.x = (box2.pos.x + box2.dim.x) - box1.pos.x;
+        InvExit.x = box2.pos.x - (box1.pos.x + box1.dim.x);
     }
-    return false;
+
+    if (vel.y < 0.0f) {
+        InvEntry.y = (box2.pos.y + box2.dim.y) - box1.pos.y;
+        InvExit.y = box2.pos.y - (box1.pos.y + box1.dim.y);
+    } else {
+        InvEntry.y = box2.pos.y - (box1.pos.y + box1.dim.y);
+        InvExit.y = (box2.pos.y + box2.dim.y) - box1.pos.y;
+    }
+    
+    vec2 Entry, Exit;
+    if (vel.x == 0.0f) {
+        Entry.x = -INFINITY;
+        Exit.x = INFINITY;
+    } else {
+        Entry.x = InvEntry.x / vel.x;
+        Exit.x = InvExit.x / vel.x; 
+    }
+
+    if ( vel.y == 0.0f ) {
+        Entry.y = -INFINITY;
+        Exit.y = INFINITY;
+    } else {
+        Entry.y = InvEntry.y / vel.y;
+        Exit.y = InvExit.y / vel.y;
+    }
+
+    r32 entry_time = MAX(Entry.x, Entry.y);
+    r32 exit_time = MIN(Exit.x, Exit.y);
+
+    if (entry_time > exit_time || Entry.x < 0.0f && Entry.y < 0.0f || Entry.x > 1.0f || Entry.y > 1.0f) {
+        normal.x = 0.0f;
+        normal.y = 0.0f;
+        return 1.0f;
+    }
 }
 
-const AABB_Box* find_collision_AABB(const AABB_Box& box, Colliders& colliders) {
-    AABB_Box* result = 0;
+r32 find_collision_AABB(const AABB_Box& box, Colliders& colliders, const vec2& vel, vec2& normal, AABB_Box& col_box) {
     for(u32 i=0; i < colliders.size; i++) {
         if(box.id != colliders.col_array[i].id) {
-           if(AABB_Collision(box, colliders.col_array[i])) {
-                result = &colliders.col_array[i];
-                break;
-           }
+            r32 t = AABB_Swept_Collision(box, colliders.col_array[i], vel, normal);
+            if(t < 1.0f) {
+                col_box = colliders.col_array[i];
+                return t;
+            }
         }
     }
-    return result;
+    return 1.0f;
 }
 
 struct Component {
@@ -176,7 +214,7 @@ void player_init(ID id, Components* comps) {
         Position* pos = (Position*)Get_Entity_Component(id, POS_COM, comps);
         Sprite* sprite = (Sprite*)Get_Entity_Component(id, SPRITE_COM, comps);
         
-        p->speed = 7 * PIXELS_PER_METER;
+        p->speed = 10 * PIXELS_PER_METER;
         p->jump_speed = 50000;
         p->vel = vec2::zero;
         p->jump = p->jc = false;
@@ -227,10 +265,7 @@ void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colli
     vec2 dir = vec2::zero;
     
     if( ip->Up ) {
-        if(!p->jc) {
-            p->jump = true;
-            p->jc = true;
-        }
+        dir.y += 1.0f;
     }
     if( ip->Down) {
         dir.y -= 1.0f;
@@ -245,53 +280,18 @@ void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colli
         dir.normalize();
     }
     vec2 acc = dir * p->speed;
-    //gravity
-    if(p->jump) {
-        acc.y = p->jump_speed;
-        p->jump = false;
-    }
-    acc.y -= 9.8 * PIXELS_PER_METER;
     //friction
-    if(acc.x == 0.0f && !p->jc) {
-        acc.x += -p->vel.x * 9.5f;
+    if ( abs(acc.length()) < 5.f ) {
+        acc += -p->vel * 10.f;
     }
     vec2 npos = (acc * 0.5 * pow(delta, 2.0f)) + p->vel * delta + pos->pos;
-    if(npos.y < -200) {
-        npos.y = -201;
-        p->jc = false;
-    }
     c->collider->pos = npos;
     const AABB_Box* other;
-    if((other = find_collision_AABB(*c->collider, *colliders))) {
+    if ((other = find_collision_AABB(*c->collider, *colliders))) {
         printf("collision!\n");
-        if(other->pos.y < (c->collider->pos.y - c->collider->dim.y) /*|| (other->pos.y + other->dim.y) > (c->collider->pos.y)*/) {
-            if(p->vel.y <= 0.0f) {
-                printf("Collision top!\n");
-                npos.y = pos->pos.y;
-                acc.y = 0.0f;
-                p->jc = false;
-            } else {
-                printf("BONK!\n");
-                printf("Collision Bottom!\n");
-                npos.y = pos->pos.y;
-                p->vel.y = 0.0f;
-                acc.y = 0.0f;
-            } 
-        } else if(other->pos.x >= (c->collider->pos.x + c->collider->dim.x) ||
-                (other->pos.x + other->dim.x) <= c->collider->pos.x) {
-            if(acc.x >= 0.0f) {
-                printf("Collision right!\n");
-                npos.x = pos->pos.x;    p->vel.x = 0.0f;
-                acc.x = 0.0f;
-            } else {
-                printf("Collision left!\n");
-                npos.x = pos->pos.x;    
-                p->vel.x = 0.0f;
-                acc.x = 0.0f;
-            }
-        }
-
-        c->collider->pos = pos->pos;
+        vec2 last_dir = c->collider->pos - pos->pos;
+        npos = pos->pos;
+        p->vel = vec2(0.0f, 0.0f);
     } else {
         //printf("no collision\n");
     }
@@ -480,8 +480,8 @@ void update_loop(Sync *GameSync) {
     sasha->name = "sasha";
     sasha->components = POS_COM | PLAY_COM | SPRITE_COM | COLLIDE_COM;
     Position* sasha_pos = (Position*)Get_Entity_Component(sasha->id, POS_COM, &comps);
-    sasha_pos->pos.x = -640.0f;
-    sasha_pos->pos.y = 360.0f;
+    sasha_pos->pos.x = 0.0f;
+    sasha_pos->pos.y = 0.0f;
     Collider* sasha_collider = (Collider*)Get_Entity_Component(sasha->id, COLLIDE_COM, &comps);
     sasha_collider->collider = &colliders.col_array[0];
     test_box->id = 1;
@@ -489,7 +489,7 @@ void update_loop(Sync *GameSync) {
     test_box->components = POS_COM | SPRITE_COM | COLLIDE_COM;
     Position* test_box_pos = (Position*)Get_Entity_Component(test_box->id, POS_COM, &comps);
     test_box_pos->pos.x = 200.0f;
-    test_box_pos->pos.y = 0.0f;
+    test_box_pos->pos.y = -100.0f;
     Collider* test_box_collider = (Collider*)Get_Entity_Component(test_box->id, COLLIDE_COM, &comps);
     test_box_collider->collider = &colliders.col_array[1];
     test_box_collider->collider->pos = test_box_pos->pos;
