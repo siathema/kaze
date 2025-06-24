@@ -98,6 +98,7 @@ i32 proc() {
     GlobalSync->Ip = new Input();
     GlobalSync->UiContext = new UI_Context();
     GlobalSync->Viewport = new ViewportInfo();
+    r32 delta = 0.0f;
     GlobalSync->delta = 0.0f;
     *GlobalSync->UiContext = {};
     *GlobalSync->Ip = {};
@@ -135,14 +136,14 @@ i32 proc() {
     char debugMessage[256];
     sprintf(debugMessage, format, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0, 0, 0.0f, 0.0f,
             0.0f);
-    const u32 targetTime = 1000 / 60;
-    u32 elapsedTime = 0;
+    const u64 targetTime = 1000 / 60;
+    u64 elapsedTime = 0;
 
     Game game = {};
     std::thread updateLoop(&update_loop, GlobalSync);
 
     while (GlobalSync->Running.load()) {
-        u32 startTime = SDL_GetTicks();
+        u64 startTime = SDL_GetTicks();
 
         renderer.Render(Rq2, cameras);
         renderer.Render_String(debugMessage, cameras[0],
@@ -154,11 +155,6 @@ i32 proc() {
 
 
         elapsedTime = SDL_GetTicks() - startTime;
-        r32 SecondsPerFrame = (1.0f / 1000) * elapsedTime;
-        r32 FPS = 1.0f / SecondsPerFrame;
-        sprintf(debugMessage, format, FPS, cameras[1].Pos.x, cameras[1].Pos.y,
-                cameras[1].Pos.z, cameras[1].Pitch,
-                cameras[1].Yaw, cameras[1].Fov);
         
         Ip2->WheelX = 0;
         Ip2->WheelY = 0;
@@ -241,7 +237,7 @@ i32 proc() {
         GlobalSync->Rq = Rq2;
         Rq2 = tempQueue;
         GlobalSync->UpdateLoop = true;
-        GlobalSync->delta = (r32)elapsedTime / 1000.0f;
+        GlobalSync->delta = delta;
 
         Camera *tempCams = GlobalSync->Cams;
         GlobalSync->Cams = cameras;
@@ -256,11 +252,11 @@ i32 proc() {
         GlobalSync->Mutex.unlock();
 
         // NOTE(matthias): Timing stuff
-        u32 endTime = SDL_GetTicks();
+        u64 endTime = SDL_GetTicks();
         elapsedTime = endTime - startTime;
 #if 1
         if (elapsedTime < targetTime) {
-            u32 wait = targetTime - elapsedTime;
+            u64 wait = targetTime - elapsedTime;
             if (wait < 5) {
                 while (1) {
                     elapsedTime = SDL_GetTicks() - startTime;
@@ -271,6 +267,15 @@ i32 proc() {
                 SDL_Delay(wait);
             }
         }
+        elapsedTime = SDL_GetTicks() - startTime;
+        r32 SecondsPerFrame = (1.0f / 1000) * elapsedTime;
+        r32 FPS = 1.0f / SecondsPerFrame;
+        sprintf(debugMessage, format, FPS, cameras[1].Pos.x, cameras[1].Pos.y,
+                cameras[1].Pos.z, cameras[1].Pitch,
+                cameras[1].Yaw, cameras[1].Fov);
+        delta = SecondsPerFrame;
+        printf("%f\n", delta);
+
 #endif
     }
 
