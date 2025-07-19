@@ -212,7 +212,7 @@ void ASSETS::Load_Assets(ViewportInfo &viewport) {
         Load_Texture("assets/img/tile.png");
         Load_Texture("assets/img/texture.png");
         Load_Texture("assets/img/Light-Green-Grass-Texture-for-Download.png");
-        Load_Texture("assets/img/Sasha_Current_Armor.png");
+        Load_Texture("assets/img/shell.png");
         Load_Texture("assets/img/Frog_Bot_Profile.png");
     }
     simple_quad(1.0f);

@@ -28,8 +28,8 @@ Input *Ip2;
 
 i32 proc() {
     ViewportInfo viewPortInfo = {};
-    viewPortInfo.ScreenHeight = 720;
-    viewPortInfo.ScreenWidth = 1280;
+    viewPortInfo.ScreenHeight = 1080;
+    viewPortInfo.ScreenWidth = 1920;
     viewPortInfo.Vsync = true;
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -274,7 +274,6 @@ i32 proc() {
                 cameras[1].Pos.z, cameras[1].Pitch,
                 cameras[1].Yaw, cameras[1].Fov);
         delta = SecondsPerFrame;
-        printf("%f\n", delta);
 
 #endif
     }

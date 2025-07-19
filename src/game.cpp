@@ -13,452 +13,32 @@
 namespace SMOBA {
 #define MAX(a, b) (a > b) ? (a) : (b)
 #define MIN(a, b) (a < b) ? (a) : (b)
-/*
-    bool point_in_polygon_convex(const std::vector<vec2> polygon, const vec2 point) {
-        for(u32 i = 0; i < polygon.size(); i++) {
-           size_t p2i = i == polygon.size() -1 ? 0 : i;
-           vec2 v1 = polygon[p2i] - polygon[i];
-           vec2 v2 = point - polygon[i];
-           r64 orient = v1.cross(v2);
-           if(orient > 0) {
-               return false;
-           }
-        }
-        return true;
-    }
-*/
 
-//NOTE(Aria): Were doing AABB collisions and brute forcing detections for now,
-// if needed we can change to SAT and quadtrees later.
-struct AABB_Box {
-    vec2 pos;
-    vec2 dim;
-    ID id;
-};
+struct sprite {
+    vec3 pos;
+    vec2 scale;
+    r32 rot;
 
-#define MAX_COLLIDERS 64
-struct Colliders {
-    i32 size;
-    AABB_Box col_array[MAX_COLLIDERS];
-
-    void init() {
-        for(u32 i = 0; i < MAX_COLLIDERS; i++) {
-            col_array[i].id = i;
-        }
-    }
-};
-
-// Incase we want to just see if a point is in a box.
-bool point_in_box(const vec2& point, const AABB_Box& box) {
-    if(((point.x >= box.pos.x) && (point.x <= box.pos.x + box.dim.x)) &&
-            ((point.y >= box.pos.y) && (point.y <= box.pos.y + box.dim.y))) {
-        return true;
-    }
-    return false;
-}
-
-r32 AABB_Swept_Collision(const AABB_Box& box1, const AABB_Box& box2, const vec2& vel, vec2& normal) {
-    vec2 InvEntry, InvExit;
-    if ( vel.x > 0.0f) {
-        InvEntry.x = box2.pos.x - (box1.pos.x + box1.dim.x);
-        InvExit.x = (box2.pos.x + box2.dim.x) - box1.pos.x;
-    } else {
-        InvEntry.x = (box2.pos.x + box2.dim.x) - box1.pos.x;
-        InvExit.x = box2.pos.x - (box1.pos.x + box1.dim.x);
-    }
-
-    if (vel.y < 0.0f) {
-        InvEntry.y = (box2.pos.y + box2.dim.y) - box1.pos.y;
-        InvExit.y = box2.pos.y - (box1.pos.y + box1.dim.y);
-    } else {
-        InvEntry.y = box2.pos.y - (box1.pos.y + box1.dim.y);
-        InvExit.y = (box2.pos.y + box2.dim.y) - box1.pos.y;
-    }
-    
-    vec2 Entry, Exit;
-    if (vel.x == 0.0f) {
-        Entry.x = -INFINITY;
-        Exit.x = INFINITY;
-    } else {
-        Entry.x = InvEntry.x / vel.x;
-        Exit.x = InvExit.x / vel.x; 
-    }
-
-    if ( vel.y == 0.0f ) {
-        Entry.y = -INFINITY;
-        Exit.y = INFINITY;
-    } else {
-        Entry.y = InvEntry.y / vel.y;
-        Exit.y = InvExit.y / vel.y;
-    }
-
-    r32 entry_time = MAX(Entry.x, Entry.y);
-    r32 exit_time = MIN(Exit.x, Exit.y);
-
-    if (entry_time > exit_time || Entry.x < 0.0f && Entry.y < 0.0f || Entry.x > 1.0f || Entry.y > 1.0f) {
-        normal.x = 0.0f;
-        normal.y = 0.0f;
-        return 1.0f;
-    }
-}
-
-r32 find_collision_AABB(const AABB_Box& box, Colliders& colliders, const vec2& vel, vec2& normal, AABB_Box& col_box) {
-    for(u32 i=0; i < colliders.size; i++) {
-        if(box.id != colliders.col_array[i].id) {
-            r32 t = AABB_Swept_Collision(box, colliders.col_array[i], vel, normal);
-            if(t < 1.0f) {
-                col_box = colliders.col_array[i];
-                return t;
-            }
-        }
-    }
-    return 1.0f;
-}
-
-struct Component {
-    ID entity;
-    u64 type;
-};
-
-struct Position {
-    Component comp;
-    vec2 pos;
-};
-
-#define PIXELS_PER_METER 100
-struct Player {
-    Component comp;
-    vec2 vel;
-    r32 speed, jump_speed;
-    bool jump, jc;
-};
-
-struct Sprite {
-    Component comp;
     RenderCommand rc;
-};
 
-struct Collider {
-    Component comp;
-    AABB_Box* collider;
-};
-
-struct Entity {
-    ID id;
-    const char * name;
-    u64 components;
-    bool visible;
-    bool alive;
-};
-
-enum component_value {
-    POS_COM = 1 << 0,
-    PLAY_COM = 1 << 1,
-    SPRITE_COM = 1 << 2,
-    COLLIDE_COM = 1 << 3
-};
-//NOTE(Aria): Make this more generalized.
-#define MAX_COMPONENTS 64
-#define MAX_ENTITIES 128
-struct Components {
-   Position positions[MAX_ENTITIES]; 
-   Position players[MAX_ENTITIES]; 
-   Sprite sprites[MAX_ENTITIES]; 
-   Collider colliders[MAX_ENTITIES]; 
-   Entity entities[MAX_ENTITIES];
-
-   u16 num_entities;
-};
-
-Component* Get_Entity_Component(ID entity, component_value comp, Components* comps) {
-    Entity* e = &comps->entities[entity];
-    if(e->components & comp) {
-        switch (comp) {
-            case POS_COM:{
-                return (Component*)&comps->positions[entity];
-                         }break;
-            case PLAY_COM:{
-                return (Component*)&comps->players[entity];
-                          }break;
-            case SPRITE_COM:{
-                return (Component*)&comps->sprites[entity];
-                           }break;
-            case COLLIDE_COM:{
-                return (Component*)&comps->colliders[entity];
-                             }break;
-            default:{
-
-                    }break;
-        } 
+    void tick(r32 delta) {
+            
     }
-    return 0;
-}
 
-void components_create(Components* comps) {
-    for(u32 i = 0; i < MAX_ENTITIES; i++) {
-        comps->positions[i].comp.entity = i;
-        comps->positions[i].comp.type = POS_COM;
-        comps->players[i].comp.entity = i;
-        comps->players[i].comp.type = PLAY_COM;
-        comps->sprites[i].comp.entity = i;
-        comps->sprites[i].comp.type = SPRITE_COM;
-        comps->colliders[i].comp.entity = i;
-        comps->colliders[i].comp.type = COLLIDE_COM;
-    }
-}
-
-void position_init(ID id, Components* comps) {}
-void player_init(ID id, Components* comps) {
-        Player* p = (Player*)Get_Entity_Component(id, PLAY_COM, comps);
-        Collider* collider = (Collider*)Get_Entity_Component(id, COLLIDE_COM, comps);
-        Position* pos = (Position*)Get_Entity_Component(id, POS_COM, comps);
-        Sprite* sprite = (Sprite*)Get_Entity_Component(id, SPRITE_COM, comps);
-        
-        p->speed = 10 * PIXELS_PER_METER;
-        p->jump_speed = 50000;
-        p->vel = vec2::zero;
-        p->jump = p->jc = false;
-        collider->collider->dim.x = 90;
-        collider->collider->dim.y = 160;
-        collider->collider->pos.x = pos->pos.x;
-        collider->collider->pos.y = pos->pos.y;
-        sprite->rc.RenderType = TEXTURERENDER;
-        sprite->rc.ShaderType = SIMPLEBLIT;
-        sprite->rc.Mesh = 0;
-        sprite->rc.Texture = ASSETS::TEXTURES::Sasha;
-        sprite->rc.TextureRect = iRect(0, 0, 1800, 3200);
-        sprite->rc.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        //TODO(Aria): fix this.
-        sprite->rc.Pos = vec3(pos->pos.x, pos->pos.y - collider->collider->dim.y, 1.0f);;
-        sprite->rc.Scale = vec3(0.05f, 0.05f, 0.05f);
-        sprite->rc.Rot = 0.0f;
-}
-void sprite_init(ID id, Components* comps) {}
-void collider_init(ID id, Components* comps) {}
-
-void components_init(Components* comps) {
-    u16 num_entities = comps->num_entities;
-    for(u32 i = 0; i < num_entities; i++) {
-        //TODO(Aria): change to pointers
-        Entity ce = comps->entities[i];
-        if(ce.components & POS_COM) { 
-            position_init(i, comps);
-        }
-        if(ce.components & PLAY_COM) { 
-            player_init(i, comps);
-        }
-        if(ce.components & SPRITE_COM) { 
-            sprite_init(i, comps);
-        }
-        if(ce.components & COLLIDE_COM) { 
-            collider_init(i, comps);
-        }
-    }
-}
-
-void position_tick(ID id, Components* comp) {}
-
-void player_tick(ID id, Components* comp, r32 delta, Input* ip, Colliders* colliders) {
-    Player* p = (Player*)Get_Entity_Component(id, PLAY_COM, comp);
-    Collider* c = (Collider*)Get_Entity_Component(id, COLLIDE_COM, comp);
-    Position* pos = (Position*)Get_Entity_Component(id, POS_COM, comp);
-    vec2 dir = vec2::zero;
-    
-    if( ip->Up ) {
-        dir.y += 1.0f;
-    }
-    if( ip->Down) {
-        dir.y -= 1.0f;
-    }
-    if( ip->Left) {
-        dir.x -= 1.0f;
-    }
-    if( ip->Right) {
-        dir.x += 1.0f;
-    }
-    if(dir.length() > 1.0f) {
-        dir.normalize();
-    }
-    vec2 acc = dir * p->speed;
-    //friction
-    if ( abs(acc.length()) < 5.f ) {
-        acc += -p->vel * 10.f;
-    }
-    vec2 npos = (acc * 0.5 * pow(delta, 2.0f)) + p->vel * delta + pos->pos;
-    c->collider->pos = npos;
-    const AABB_Box* other;
-    if ((other = find_collision_AABB(*c->collider, *colliders))) {
-        printf("collision!\n");
-        vec2 last_dir = c->collider->pos - pos->pos;
-        npos = pos->pos;
-        p->vel = vec2(0.0f, 0.0f);
-    } else {
-        //printf("no collision\n");
-    }
-    pos->pos = npos;
-    p->vel = acc * delta + p->vel;
-}
-
-void sprite_tick(ID id, Components* comp) {}
-void collider_tick(ID id, Components* comp) {}
-
-void components_tick(Components* comps, r32 delta, Input* ip, Colliders* colliders) {
-    u16 num_entities = comps->num_entities;
-    for(u32 i = 0; i < num_entities; i++) {
-        //TODO(Aria): change to pointers
-        Entity ce = comps->entities[i];
-        if(ce.components & POS_COM) { 
-            position_tick(i, comps);
-        }
-        if(ce.components & PLAY_COM) { 
-            player_tick(i, comps, delta, ip, colliders);
-        }
-        if(ce.components & SPRITE_COM) { 
-            sprite_tick(i, comps);
-        }
-        if(ce.components & COLLIDE_COM) { 
-            collider_tick(i, comps);
-        }
-    }
-}
-
-void position_draw(ID id, Components* comp, std::queue<RenderCommand> * rq) {}
-void player_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {}
-void sprite_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {
-    Sprite* sprite = (Sprite*)Get_Entity_Component(id, SPRITE_COM, comp);
-    Position* pos = (Position*)Get_Entity_Component(id, POS_COM, comp);
-    sprite->rc.Pos = vec3(pos->pos.x, pos->pos.y, 1.0f);
-
-    rq->push(sprite->rc);
-}
-void collider_draw(ID id, Components* comp, std::queue<RenderCommand> *rq) {
-        
-        Collider* col = (Collider*)Get_Entity_Component(id, COLLIDE_COM, comp);
-        RenderCommand rc = {};
-        rc.RenderType = RECTANGLERENDER;
-        rc.ShaderType =  FILLRECTANGLE;
-        rc.Mesh = 0;
-        rc.Texture = 0;
-        rc.TextureRect = iRect(0, 0, col->collider->dim.x, col->collider->dim.y);
-        rc.Color = vec4(1.0f, 1.0f, 0.0f, 1.0f);
-        rc.Pos = vec3(col->collider->pos.x, col->collider->pos.y, 1.0f);;
-        rc.Scale = vec3(1.0f, 1.0f, 1.0f);
-        rc.Rot = 0.0f;
+    void render(std::queue<RenderCommand> * rq) {
+        rc.RenderType = TEXTURERENDER;
+        rc.ShaderType = SIMPLEBLIT;
+        rc.Texture = ASSETS::TEXTURES::Shell;
+        rc.TextureRect = iRect(0, 0, 288, 288);
+        rc.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        //todo(aria): fix this.
+        rc.Pos = pos;
+        rc.Scale = vec3( -scale.x, scale.y, 0.0f);
+        rc.Rot = rot;
         rq->push(rc);
-}
 
-void components_draw(Components* comps, std::queue<RenderCommand> *rq) {
-    u16 num_entities = comps->num_entities;
-    for(u32 i = 0; i < num_entities; i++) {
-        //TODO(Aria): change to pointers
-        Entity ce = comps->entities[i];
-        if(ce.components & POS_COM) { 
-            position_draw(i, comps, rq);
-        }
-        if(ce.components & PLAY_COM) { 
-            player_draw(i, comps, rq);
-        }
-        if(ce.components & SPRITE_COM) { 
-            sprite_draw(i, comps, rq);
-        }
-        if(ce.components & COLLIDE_COM) { 
-            collider_draw(i, comps, rq);
-        }
-    }
-}
-
-/*
-struct old_entity {
-    ID id;
-    vec2 pos;
-    vec2 vel;
-    r32 speed, jump_speed;
-    quat rot;
-    RenderCommand render_info;
-    bool jump, jc;
-    AABB_Box* collider;
-
-    void init(AABB_Box* c) {
-        speed = 7 * PIXELS_PER_METER;
-        jump_speed = 50000;
-        vel = vec2::zero;
-        jump = jc = false;
-        collider = c;
-        collider->dim.x = 90;
-        collider->dim.y = 160;
-        collider->pos.x = pos.x;
-        collider->pos.y = pos.y;
-        render_info.RenderType = TEXTURERENDER;
-        render_info.ShaderType = SIMPLEBLIT;
-        render_info.Mesh = 0;
-        render_info.Texture = ASSETS::TEXTURES::Sasha;
-        render_info.TextureRect = iRect(0, 0, 1800, 3200);
-        render_info.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        render_info.Pos = vec3(pos.x, pos.y, 1.0f);;
-        render_info.Scale = vec3(1.0f, 1.0f, 1.0f);
-        render_info.Rot = 0.0f;
-    }
-
-    void tick(float delta, Input* ip, Colliders* colliders) {
-        vec2 dir = vec2::zero;
-        collider->pos = pos;
-        if(find_collision_AABB(*collider, *colliders)) {
-            printf("Collision!\n");
-        } else {
-            printf("no collision :/\n");
-        }
-        if( ip->Up ) {
-            if(!jc) {
-                jump = true;
-                jc = true;
-            }
-        }
-        if( ip->Down) {
-            dir.y -= 1.0f;
-        }
-        if( ip->Left) {
-            dir.x -= 1.0f;
-        }
-        if( ip->Right) {
-            dir.x += 1.0f;
-        }
-        if(dir.length() > 1.0f) {
-            dir.normalize();
-        }
-        vec2 acc = dir * speed;
-        //gravity
-        if(jump) {
-            acc.y = jump_speed;
-            jump = false;
-        }
-        acc.y -= 9.8 * PIXELS_PER_METER;
-
-        //friction
-        if(acc.x == 0.0f && !jc) {
-            acc.x += -vel.x * 9.5f;
-        }
-
-
-
-        vec2 npos = (acc * 0.5 * pow(delta, 2.0f)) + vel * delta + pos;
-        if(npos.y < -200) {
-            npos.y = -201;
-            jc = false;
-        }
-        pos = npos;
-
-        vel = acc * delta + vel;
-
-    }
-
-    void render(std::queue<RenderCommand> *rq) {
-        render_info.Pos = vec3(pos.x, pos.y, 1.0f);
-        render_info.Scale = vec3(0.05f, -0.05f, 0.05f);
-
-        rq->push(render_info);
     }
 };
-*/
 
 void update_loop(Sync *GameSync) {
     // NOTE(matthias): initialization of Game starts here. Stays in scope for
@@ -466,55 +46,21 @@ void update_loop(Sync *GameSync) {
     GameState game = {};
     game.GameSync = GameSync;
 
+
+    sprite s = {};
+    s.pos = vec3(900, 0.0f, 1.0f);
+    s.scale = vec2(2.0f, -2.0f);
+    s.rot = 0.0f;
+
     b8 DebugGame = true;
-    Colliders colliders = {};
-    colliders.init();
-    colliders.size = 2;
-
-    Components comps = {};
-    components_create(&comps);
-    comps.num_entities = 2;
-    Entity* sasha = &comps.entities[0];
-    Entity* test_box = &comps.entities[1];
-    sasha->id = 0;
-    sasha->name = "sasha";
-    sasha->components = POS_COM | PLAY_COM | SPRITE_COM | COLLIDE_COM;
-    Position* sasha_pos = (Position*)Get_Entity_Component(sasha->id, POS_COM, &comps);
-    sasha_pos->pos.x = 0.0f;
-    sasha_pos->pos.y = 0.0f;
-    Collider* sasha_collider = (Collider*)Get_Entity_Component(sasha->id, COLLIDE_COM, &comps);
-    sasha_collider->collider = &colliders.col_array[0];
-    test_box->id = 1;
-    test_box->name = "test_box";
-    test_box->components = POS_COM | SPRITE_COM | COLLIDE_COM;
-    Position* test_box_pos = (Position*)Get_Entity_Component(test_box->id, POS_COM, &comps);
-    test_box_pos->pos.x = 200.0f;
-    test_box_pos->pos.y = -100.0f;
-    Collider* test_box_collider = (Collider*)Get_Entity_Component(test_box->id, COLLIDE_COM, &comps);
-    test_box_collider->collider = &colliders.col_array[1];
-    test_box_collider->collider->pos = test_box_pos->pos;
-    test_box_collider->collider->dim = vec2(90.0f, 160.0f);
-    Sprite* test_box_sprite = (Sprite*)Get_Entity_Component(test_box->id, SPRITE_COM, &comps);
-    test_box_sprite->rc.RenderType = RECTANGLERENDER;
-    test_box_sprite->rc.ShaderType =  FILLRECTANGLE;
-    test_box_sprite->rc.Mesh = 0;
-    test_box_sprite->rc.Texture = ASSETS::TEXTURES::Sasha;
-    test_box_sprite->rc.TextureRect = iRect(0, 0, 1800, 3200);
-    test_box_sprite->rc.Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    test_box_sprite->rc.Pos = vec3(test_box_pos->pos.x, test_box_pos->pos.y, 1.0f);;
-    test_box_sprite->rc.Scale = vec3(0.05f, 0.05f, 0.05f);
-    test_box_sprite->rc.Rot = 0.0f;
-    components_init(&comps);
-
     if (DebugGame) {
         // NOTE(matthias): Main Game loop
         while (GameSync->Running.load()) {
             std::lock_guard<std::mutex> lock(GameSync->Mutex);
             if (GameSync->UpdateLoop) {
                 // Update
-                components_tick(&comps, GameSync->delta, GameSync->Ip, &colliders);
                 // Rendering
-                components_draw(&comps, GameSync->Rq);
+                s.render(GameSync->Rq);
 
                 GameSync->UpdateLoop = false;
             }
@@ -525,8 +71,4 @@ void update_loop(Sync *GameSync) {
 Game::Game() {}
 
 Game::~Game() {}
-
-void Game::tick(r32 delta) {}
-
-void Game::render(std::queue<RenderCommand> *rq) {}
 } // namespace SMOBA
